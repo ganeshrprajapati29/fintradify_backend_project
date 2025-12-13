@@ -107,12 +107,12 @@ const generateSalarySlipPDF = (salarySlip, employee) => {
 };
 
 /**
- * @route POST /salaryslips
+ * @route POST /salary
  * @desc Create salary slip + send email
  */
 router.post('/', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
-  const { employeeId, month, hourlyRate } = req.body;
+  const { employeeId, month } = req.body;
   try {
     const [year, monthNum] = month.split('-');
     const startDate = new Date(year, monthNum - 1, 1);
@@ -130,7 +130,7 @@ router.post('/', auth, async (req, res) => {
       return sum;
     }, 0);
 
-    const amount = (totalHours * hourlyRate).toFixed(2);
+    const amount = (totalHours * 100).toFixed(2); // Fixed hourly rate of 100
 
     const salarySlip = new SalarySlip({
       employee: employeeId,
@@ -139,8 +139,6 @@ router.post('/', auth, async (req, res) => {
       hoursWorked: totalHours.toFixed(2),
     });
     await salarySlip.save();
-
-    const employee = await Employee.findById(employeeId);
 
     const pdfBuffer = await generateSalarySlipPDF(salarySlip, employee);
 

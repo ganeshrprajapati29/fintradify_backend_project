@@ -179,7 +179,11 @@ router.get('/profile', auth, async (req, res) => {
     const employee = await Employee.findById(req.user.id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
     const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
-    res.json({ ...employee._doc, salary: latestSalary ? latestSalary.amount : 'N/A' });
+    res.json({
+      ...employee._doc,
+      salary: latestSalary ? latestSalary.amount : 'N/A',
+      employeeId: employee.employeeId // Ensure employeeId is included
+    });
   } catch (err) {
     console.error('Fetch profile error:', err);
     res.status(500).json({ message: 'Server error while fetching profile' });
