@@ -8,6 +8,10 @@ const employeeSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   position: { type: String, required: true },
   role: { type: String, enum: ['admin', 'employee'], default: 'employee' },
+  status: { type: String, enum: ['active', 'terminated'], default: 'active' },
+  joiningDate: { type: Date, required: true },
+  paidLeaveBalance: { type: Number, default: 0 },
+  halfDayLeaveBalance: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
 });
 

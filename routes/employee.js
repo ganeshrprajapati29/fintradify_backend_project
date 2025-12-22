@@ -30,6 +30,7 @@ router.get('/', auth, async (req, res) => {
         return {
           ...emp._doc,
           salary: latestSalary ? latestSalary.amount : 'N/A',
+          isActive: emp.status === 'active'
         };
       })
     );
@@ -42,7 +43,7 @@ router.get('/', auth, async (req, res) => {
 
 router.post('/', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
-  const { name, email, phone, position, salary } = req.body;
+  const { name, email, phone, position, salary, joiningDate } = req.body;
   try {
     let employee = await Employee.findOne({ email });
     if (employee) return res.status(400).json({ message: 'Employee already exists' });
@@ -97,7 +98,7 @@ router.post('/', auth, async (req, res) => {
         </table>
         <p style="margin-top: 20px;">Please use these credentials to log in to the <strong>Fintradify Employee Portal</strong>.</p>
         <p style="text-align: center; margin: 20px 0;">
-          <a href="https://careersachiever.com/" style="background-color:#007bff; color:#fff; padding: 10px 20px; border-radius: 5px; text-decoration:none; font-weight:bold;">
+          <a href="https://crm.fintradify.com/" style="background-color:#007bff; color:#fff; padding: 10px 20px; border-radius: 5px; text-decoration:none; font-weight:bold;">
             🔗 Go to Employee Portal
           </a>
         </p>
@@ -118,7 +119,7 @@ router.post('/', auth, async (req, res) => {
 
 router.put('/:id', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
-  const { name, email, phone, position, password, salary } = req.body;
+  const { name, email, phone, position, password, salary, joiningDate } = req.body;
   try {
     const employee = await Employee.findById(req.params.id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
@@ -127,6 +128,7 @@ router.put('/:id', auth, async (req, res) => {
     employee.email = email || employee.email;
     employee.phone = phone || employee.phone;
     employee.position = position || employee.position;
+    if (joiningDate) employee.joiningDate = new Date(joiningDate);
     if (password) employee.password = await bcrypt.hash(password, 10);
 
     await employee.save();
@@ -187,6 +189,74 @@ router.get('/profile', auth, async (req, res) => {
   } catch (err) {
     console.error('Fetch profile error:', err);
     res.status(500).json({ message: 'Server error while fetching profile' });
+  }
+});
+
+router.put('/:id/terminate', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  try {
+    const employee = await Employee.findById(req.params.id);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    employee.status = 'terminated';
+    await employee.save();
+
+    const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
+    res.json({ ...employee._doc, salary: latestSalary ? latestSalary.amount : 'N/A' });
+  } catch (err) {
+    console.error('Terminate employee error:', err);
+    res.status(500).json({ message: 'Server error while terminating employee' });
+  }
+});
+
+router.put('/:id/enable', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  try {
+    const employee = await Employee.findById(req.params.id);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    employee.status = 'active';
+    await employee.save();
+
+    const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
+    res.json({ ...employee._doc, salary: latestSalary ? latestSalary.amount : 'N/A' });
+  } catch (err) {
+    console.error('Enable employee error:', err);
+    res.status(500).json({ message: 'Server error while enabling employee' });
+  }
+});
+
+router.put('/:id/block', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  try {
+    const employee = await Employee.findById(req.params.id);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    employee.status = 'terminated';
+    await employee.save();
+
+    const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
+    res.json({ ...employee._doc, salary: latestSalary ? latestSalary.amount : 'N/A' });
+  } catch (err) {
+    console.error('Block employee error:', err);
+    res.status(500).json({ message: 'Server error while blocking employee' });
+  }
+});
+
+router.put('/:id/unblock', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  try {
+    const employee = await Employee.findById(req.params.id);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    employee.status = 'active';
+    await employee.save();
+
+    const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
+    res.json({ ...employee._doc, salary: latestSalary ? latestSalary.amount : 'N/A' });
+  } catch (err) {
+    console.error('Unblock employee error:', err);
+    res.status(500).json({ message: 'Server error while unblocking employee' });
   }
 });
 

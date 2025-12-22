@@ -5,6 +5,8 @@ const attendanceSchema = new mongoose.Schema({
   date: { type: Date, required: true },
   punchIn: { type: Date },
   punchOut: { type: Date },
+  holiday: { type: Boolean, default: false },
+  halfDay: { type: Boolean, default: false },
 });
 
 module.exports = mongoose.model('Attendance', attendanceSchema);

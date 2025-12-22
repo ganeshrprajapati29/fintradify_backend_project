@@ -12,6 +12,7 @@ System: res.setHeader('Content-Type', 'application/pdf');
   doc.fontSize(14).text(`Employee ID: ${employee.employeeId}`);
   doc.text(`Name: ${employee.name}`);
   doc.text(`Position: ${employee.position}`);
+  doc.text(`Joining Date: ${new Date(employee.joiningDate).toLocaleDateString()}`);
   doc.text(`Month: ${month}`);
   doc.text(`Hours Worked: ${salarySlip.hoursWorked}`);
   doc.text(`Hourly Rate: ₹${(salarySlip.amount / salarySlip.hoursWorked).toFixed(2)}`);

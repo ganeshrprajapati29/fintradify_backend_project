@@ -193,6 +193,22 @@ router.get('/my-slips', auth, async (req, res) => {
 });
 
 /**
+ * @route POST /generate-monthly
+ * @desc Generate salary slips for all employees based on attendance and send emails
+ */
+router.post('/generate-monthly', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  const { month, year } = req.body;
+  try {
+    await generateMonthlySalarySlips(month, year);
+    res.json({ message: 'Salary slips generated and emails sent successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
  * @route GET /salaryslips
  * @desc Get all slips (admin only)
  */

@@ -232,6 +232,45 @@ router.get('/download', auth, async (req, res) => {
 });
 
 /**
+ * Admin: Manual Punch In/Out
+ */
+router.post('/admin/punch', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  const { employeeId, date, punchIn, punchOut } = req.body;
+  try {
+    const attendance = await Attendance.findOneAndUpdate(
+      { employee: employeeId, date: new Date(date) },
+      { punchIn: punchIn ? new Date(punchIn) : undefined, punchOut: punchOut ? new Date(punchOut) : undefined },
+      { new: true, upsert: true }
+    );
+    res.json(attendance);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
+ * Admin: Mark Holiday or Half Day
+ */
+router.post('/admin/mark', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  const { employeeId, date, type } = req.body; // type: 'holiday' or 'halfDay'
+  try {
+    const update = type === 'holiday' ? { holiday: true } : { halfDay: true };
+    const attendance = await Attendance.findOneAndUpdate(
+      { employee: employeeId, date: new Date(date) },
+      update,
+      { new: true, upsert: true }
+    );
+    res.json(attendance);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
  * Employee: Download My Attendance CSV
  */
 router.get('/download/my-attendance', auth, async (req, res) => {

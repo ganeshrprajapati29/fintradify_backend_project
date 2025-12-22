@@ -1,0 +1,45 @@
+const Employee = require('../models/Employee');
+const Attendance = require('../models/Attendance');
+const SalarySlip = require('../models/SalarySlip');
+const { sendEmail } = require('../utils/sendEmail');
+const generatePDF = require('../utils/generatePDF');
+
+async function generateMonthlySalarySlips(month, year) {
+  const startDate = new Date(year, month - 1, 1);
+  const endDate = new Date(year, month, 0);
+
+  const employees = await Employee.find();
+
+  for (const employee of employees) {
+    // Count attendance days
+    const attendanceCount = await Attendance.countDocuments({
+      employee: employee._id,
+      date: { $gte: startDate, $lte: endDate },
+      punchIn: { $exists: true },
+      punchOut: { $exists: true }
+    });
+
+    // Calculate salary based on days present
+    const totalDays = 30;
+    const dailySalary = employee.salary / totalDays;
+    const amount = attendanceCount * dailySalary;
+
+    // Create salary slip
+    const salarySlip = new SalarySlip({
+      employee: employee._id,
+      month: `${year}-${month.toString().padStart(2, '0')}`,
+      amount: Math.round(amount),
+      date: new Date()
+    });
+
+    await salarySlip.save();
+
+    // Generate PDF
+    const pdfBuffer = await generatePDF(salarySlip);
+
+    // Send email
+    await sendEmail(employee.email, 'Monthly Salary Slip', 'Please find your salary slip attached.', pdfBuffer);
+  }
+}
+
+module.exports = { generateMonthlySalarySlips };

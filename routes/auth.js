@@ -15,6 +15,10 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Employee ID Not Found' });
     }
 
+    if (employee.status !== 'active') {
+      return res.status(403).json({ message: 'Account is blocked' });
+    }
+
     // 🔹 If user is admin (login with password)
     if (employee.role === 'admin') {
       if (!password) {
