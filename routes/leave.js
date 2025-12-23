@@ -38,12 +38,24 @@ router.put('/:id', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
   const { status } = req.body;
   try {
-    const leave = await Leave.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    ).populate('employee', 'employeeId name');
+    const leave = await Leave.findById(req.params.id).populate('employee');
     if (!leave) return res.status(404).json({ message: 'Leave not found' });
+
+    // Calculate days if approving
+    if (status === 'approved' && leave.status !== 'approved') {
+      const start = new Date(leave.startDate);
+      const end = new Date(leave.endDate);
+      const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+      if (leave.type === 'paid') {
+        // Increment used paid leaves
+        await Employee.findByIdAndUpdate(leave.employee._id, { $inc: { usedPaidLeaves: days } });
+      }
+    }
+
+    leave.status = status;
+    await leave.save();
+
     res.json(leave);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
@@ -126,6 +138,29 @@ router.get('/my-employee-data', auth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.get('/balances', auth, async (req, res) => {
+  try {
+    const employee = await Employee.findById(req.user.id);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    // Calculate paid leave balance based on joining date - eligible after 6 months with carry over
+    const now = new Date();
+    const joining = new Date(employee.joiningDate);
+    const monthsDiff = Math.floor((now - joining) / (1000 * 60 * 60 * 24 * 30)); // More accurate month calculation
+    const accruedPaidLeave = monthsDiff >= 6 ? Math.floor(monthsDiff * 1.5) : 0; // Eligible after 6 months, 1.5 days per month
+    const calculatedPaidLeave = Math.max(0, accruedPaidLeave - (employee.usedPaidLeaves || 0)); // Carry over unused leaves
+
+    res.json({
+      paidLeaveBalance: calculatedPaidLeave,
+      unpaidLeaveBalance: employee.unpaidLeaveBalance,
+      halfDayLeaveBalance: employee.halfDayLeaveBalance,
+    });
+  } catch (err) {
+    console.error('Fetch leave balances error:', err);
+    res.status(500).json({ message: 'Server error while fetching leave balances' });
   }
 });
 

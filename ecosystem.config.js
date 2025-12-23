@@ -2,8 +2,8 @@ module.exports = {
   apps: [
     {
       name: "hr-api",
-      cwd: "/var/www/hr-portal/server",   // <-- apne project ka path dalna
-      script: "npm",
+      cwd: "/var/www/hr-portal/vps_server_crm",
+      script: "server.js",
       args: "start",
       env: {
         NODE_ENV: "production",

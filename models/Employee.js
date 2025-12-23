@@ -11,7 +11,9 @@ const employeeSchema = new mongoose.Schema({
   status: { type: String, enum: ['active', 'terminated'], default: 'active' },
   joiningDate: { type: Date, required: true },
   paidLeaveBalance: { type: Number, default: 0 },
+  unpaidLeaveBalance: { type: Number, default: 6 },
   halfDayLeaveBalance: { type: Number, default: 0 },
+  usedPaidLeaves: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
 });
 

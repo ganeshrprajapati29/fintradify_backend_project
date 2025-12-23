@@ -27,9 +27,19 @@ router.get('/', auth, async (req, res) => {
       employees.map(async (emp) => {
         const latestSalary = await SalarySlip.findOne({ employee: emp._id })
           .sort({ month: -1 });
+
+        // Calculate paid leave balance based on joining date with carry over
+        const now = new Date();
+        const joining = new Date(emp.joiningDate);
+        const monthsDiff = Math.floor((now - joining) / (1000 * 60 * 60 * 24 * 30)); // More accurate month calculation
+        const accruedPaidLeave = monthsDiff >= 6 ? Math.floor(monthsDiff * 1.5) : 0; // Eligible after 6 months, 1.5 days per month
+        const calculatedPaidLeave = Math.max(0, accruedPaidLeave - (emp.usedPaidLeaves || 0)); // Carry over unused leaves
+
         return {
           ...emp._doc,
           salary: latestSalary ? latestSalary.amount : 'N/A',
+          paidLeaveBalance: calculatedPaidLeave,
+          unpaidLeaveBalance: emp.unpaidLeaveBalance,
           isActive: emp.status === 'active'
         };
       })
@@ -181,10 +191,23 @@ router.get('/profile', auth, async (req, res) => {
     const employee = await Employee.findById(req.user.id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
     const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
+
+    // Calculate paid leave balance with carry over
+    const now = new Date();
+    const joining = new Date(employee.joiningDate);
+    const monthsDiff = Math.floor((now - joining) / (1000 * 60 * 60 * 24 * 30)); // More accurate month calculation
+    const isEligible = monthsDiff >= 6;
+    const accruedPaidLeave = isEligible ? Math.floor(monthsDiff * 1.5) : 0;
+    const calculatedPaidLeave = Math.max(0, accruedPaidLeave - (employee.usedPaidLeaves || 0));
+
     res.json({
       ...employee._doc,
       salary: latestSalary ? latestSalary.amount : 'N/A',
-      employeeId: employee.employeeId // Ensure employeeId is included
+      employeeId: employee.employeeId, // Ensure employeeId is included
+      paidLeaveBalance: calculatedPaidLeave,
+      unpaidLeaveBalance: employee.unpaidLeaveBalance,
+      halfDayLeaveBalance: employee.halfDayLeaveBalance,
+      isEligibleForPaidLeaves: isEligible,
     });
   } catch (err) {
     console.error('Fetch profile error:', err);
@@ -218,8 +241,14 @@ router.put('/:id/enable', auth, async (req, res) => {
     employee.status = 'active';
     await employee.save();
 
-    const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
-    res.json({ ...employee._doc, salary: latestSalary ? latestSalary.amount : 'N/A' });
+    let salary = 'N/A';
+    try {
+      const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
+      salary = latestSalary ? latestSalary.amount : 'N/A';
+    } catch (salaryErr) {
+      console.error('Error fetching salary:', salaryErr);
+    }
+    res.json({ ...employee._doc, salary });
   } catch (err) {
     console.error('Enable employee error:', err);
     res.status(500).json({ message: 'Server error while enabling employee' });
@@ -232,11 +261,17 @@ router.put('/:id/block', auth, async (req, res) => {
     const employee = await Employee.findById(req.params.id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
-    employee.status = 'terminated';
+    employee.status = 'blocked';
     await employee.save();
 
-    const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
-    res.json({ ...employee._doc, salary: latestSalary ? latestSalary.amount : 'N/A' });
+    let salary = 'N/A';
+    try {
+      const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
+      salary = latestSalary ? latestSalary.amount : 'N/A';
+    } catch (salaryErr) {
+      console.error('Error fetching salary:', salaryErr);
+    }
+    res.json({ ...employee._doc, salary });
   } catch (err) {
     console.error('Block employee error:', err);
     res.status(500).json({ message: 'Server error while blocking employee' });
@@ -252,8 +287,14 @@ router.put('/:id/unblock', auth, async (req, res) => {
     employee.status = 'active';
     await employee.save();
 
-    const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
-    res.json({ ...employee._doc, salary: latestSalary ? latestSalary.amount : 'N/A' });
+    let salary = 'N/A';
+    try {
+      const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
+      salary = latestSalary ? latestSalary.amount : 'N/A';
+    } catch (salaryErr) {
+      console.error('Error fetching salary:', salaryErr);
+    }
+    res.json({ ...employee._doc, salary });
   } catch (err) {
     console.error('Unblock employee error:', err);
     res.status(500).json({ message: 'Server error while unblocking employee' });

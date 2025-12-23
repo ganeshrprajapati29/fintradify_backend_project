@@ -22,17 +22,26 @@ connectDB();
 app.use(cors({ origin: '*' }));
 app.use(express.json());
 
-app.use('/auth', authRoutes);
-app.use('/employees', employeeRoutes);
-app.use('/attendance', attendanceRoutes);
-app.use('/leaves', leaveRoutes);
-app.use('/salary', salaryRoutes);
-app.use('/tasks', taskRoutes);
-app.use('/features', featuresRoutes);
-// Root route
+app.use('/api/auth', authRoutes);
+app.use('/api/employees', employeeRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/leaves', leaveRoutes);
+app.use('/api/salary', salaryRoutes);
+app.use('/api/tasks', taskRoutes);
+app.use('/api/features', featuresRoutes);
+// ===== Root Route =====
 app.get('/', (req, res) => {
-  res.status(200).send('Server is running');
+  res.send('🚀 HR Fintradify Backend LIVE');
 });
 
+// ===== API Root Route (FIX FOR Cannot GET /api) =====
+app.get('/api', (req, res) => {
+  res.send('✅ API Working Successfully');
+});
+
+// ===== SERVER START =====
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Server running on port ${PORT}`);
+});

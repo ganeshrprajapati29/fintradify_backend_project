@@ -347,4 +347,40 @@ router.get('/download/my-attendance', auth, async (req, res) => {
   }
 });
 
+/**
+ * Admin: Edit Attendance by ID
+ */
+router.put('/admin/edit/:id', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  const { punchIn, punchOut, holiday, halfDay } = req.body;
+  try {
+    const update = {};
+    if (punchIn !== undefined) update.punchIn = punchIn ? new Date(punchIn) : null;
+    if (punchOut !== undefined) update.punchOut = punchOut ? new Date(punchOut) : null;
+    if (holiday !== undefined) update.holiday = holiday;
+    if (halfDay !== undefined) update.halfDay = halfDay;
+
+    const attendance = await Attendance.findByIdAndUpdate(req.params.id, update, { new: true }).populate('employee', 'employeeId name');
+    if (!attendance) return res.status(404).json({ message: 'Attendance record not found' });
+    res.json(attendance);
+  } catch (err) {
+    console.error('Edit attendance error:', err);
+    res.status(500).json({ message: 'Server error while editing attendance' });
+  }
+});
+
+/**
+ * Admin: Delete Attendance by ID
+ */
+router.delete('/admin/delete/:id', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  try {
+    await Attendance.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Attendance record deleted successfully' });
+  } catch (err) {
+    console.error('Delete attendance error:', err);
+    res.status(500).json({ message: 'Server error while deleting attendance' });
+  }
+});
+
 module.exports = router;
