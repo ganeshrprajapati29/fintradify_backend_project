@@ -6,6 +6,7 @@ const SalarySlip = require('../models/SalarySlip');
 const auth = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
 const { sendEmail } = require('../utils/sendEmail');
+const { blockEmployee, unblockEmployee } = require('../services/employeeService');
 
 const generateEmployeeId = async () => {
   let employeeId;
@@ -258,46 +259,22 @@ router.put('/:id/enable', auth, async (req, res) => {
 router.put('/:id/block', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
   try {
-    const employee = await Employee.findById(req.params.id);
-    if (!employee) return res.status(404).json({ message: 'Employee not found' });
-
-    employee.status = 'blocked';
-    await employee.save();
-
-    let salary = 'N/A';
-    try {
-      const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
-      salary = latestSalary ? latestSalary.amount : 'N/A';
-    } catch (salaryErr) {
-      console.error('Error fetching salary:', salaryErr);
-    }
-    res.json({ ...employee._doc, salary });
+    const result = await blockEmployee(req.params.id, req.user.id);
+    res.json(result);
   } catch (err) {
     console.error('Block employee error:', err);
-    res.status(500).json({ message: 'Server error while blocking employee' });
+    res.status(400).json({ message: err.message });
   }
 });
 
 router.put('/:id/unblock', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
   try {
-    const employee = await Employee.findById(req.params.id);
-    if (!employee) return res.status(404).json({ message: 'Employee not found' });
-
-    employee.status = 'active';
-    await employee.save();
-
-    let salary = 'N/A';
-    try {
-      const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
-      salary = latestSalary ? latestSalary.amount : 'N/A';
-    } catch (salaryErr) {
-      console.error('Error fetching salary:', salaryErr);
-    }
-    res.json({ ...employee._doc, salary });
+    const result = await unblockEmployee(req.params.id, req.user.id);
+    res.json(result);
   } catch (err) {
     console.error('Unblock employee error:', err);
-    res.status(500).json({ message: 'Server error while unblocking employee' });
+    res.status(400).json({ message: err.message });
   }
 });
 
