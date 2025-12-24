@@ -11,7 +11,7 @@ const auth = async (req, res, next) => {
     if (!employee) return res.status(401).json({ message: 'Employee not found' });
 
     // Allow profile updates even for blocked/terminated employees
-    if (!req.originalUrl.endsWith('/profile')) {
+    if (!req.originalUrl.includes('/employees/profile')) {
       if (employee.status === 'blocked') {
         return res.status(403).json({ message: 'Account is blocked. Please contact your administrator.' });
       }
