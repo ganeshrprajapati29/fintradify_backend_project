@@ -278,23 +278,7 @@ router.put('/:id/unblock', auth, async (req, res) => {
   }
 });
 
-router.put('/profile', async (req, res) => {
-  // Custom auth for profile updates - allow even blocked employees
-  const token = req.header('Authorization')?.replace('Bearer ', '');
-  if (!token) return res.status(401).json({ message: 'No token, authorization denied' });
-
-  try {
-    const jwt = require('jsonwebtoken');
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const Employee = require('../models/Employee');
-    const employee = await Employee.findById(decoded.id);
-    if (!employee) return res.status(401).json({ message: 'Employee not found' });
-
-    req.user = decoded; // Set user for the route
-  } catch (err) {
-    return res.status(401).json({ message: 'Token is not valid' });
-  }
-
+router.put('/profile', auth, async (req, res) => {
   // Now proceed with profile update
   const { name, email, phone, position, salary } = req.body;
   try {
