@@ -9,6 +9,7 @@ const leaveRoutes = require('./routes/leave');
 const salaryRoutes = require('./routes/salary');
 const taskRoutes = require('./routes/task');
 const featuresRoutes = require('./routes/features');
+const settingsRoutes = require('./routes/settings');
 const cors = require('cors');
 require('dotenv').config();
 
@@ -29,6 +30,7 @@ app.use('/api/leaves', leaveRoutes);
 app.use('/api/salary', salaryRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/features', featuresRoutes);
+app.use('/api/settings', settingsRoutes);
 // ===== Root Route =====
 app.get('/', (req, res) => {
   res.send('🚀 HR Fintradify Backend LIVE');
