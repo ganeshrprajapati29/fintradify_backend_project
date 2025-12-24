@@ -278,4 +278,82 @@ router.put('/:id/unblock', auth, async (req, res) => {
   }
 });
 
+router.put('/profile', auth, async (req, res) => {
+  const { name, email, phone, position, salary } = req.body;
+  try {
+    const employee = await Employee.findById(req.user.id);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    // Validate email format if provided
+    if (email) {
+      const emailRegex = /^[^@]+@[^@]+\.[^@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: 'Invalid email format' });
+      }
+      // Check if email is already taken by another employee
+      const existingEmployee = await Employee.findOne({ email, _id: { $ne: req.user.id } });
+      if (existingEmployee) {
+        return res.status(400).json({ message: 'Email already in use by another employee' });
+      }
+    }
+
+    // Update fields
+    if (name) employee.name = name;
+    if (email) employee.email = email;
+    if (phone) employee.phone = phone;
+    if (position) employee.position = position;
+
+    await employee.save();
+
+    // Update salary if provided
+    if (salary !== undefined && !isNaN(salary) && salary >= 0) {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+      let salarySlip = await SalarySlip.findOne({
+        employee: employee._id,
+        month: currentMonth,
+      });
+      if (salarySlip) {
+        salarySlip.amount = parseFloat(salary);
+        salarySlip.hoursWorked = 160;
+        await salarySlip.save();
+      } else if (salary > 0) {
+        salarySlip = new SalarySlip({
+          employee: employee._id,
+          month: currentMonth,
+          amount: parseFloat(salary),
+          hoursWorked: 160,
+        });
+        await salarySlip.save();
+      }
+    }
+
+    const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
+
+    // Calculate paid leave balance with carry over
+    const now = new Date();
+    const joining = new Date(employee.joiningDate);
+    const monthsDiff = Math.floor((now - joining) / (1000 * 60 * 60 * 24 * 30));
+    const isEligible = monthsDiff >= 6;
+    const accruedPaidLeave = isEligible ? Math.floor(monthsDiff * 1.5) : 0;
+    const calculatedPaidLeave = Math.max(0, accruedPaidLeave - (employee.usedPaidLeaves || 0));
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: {
+        ...employee._doc,
+        salary: latestSalary ? latestSalary.amount : 'N/A',
+        employeeId: employee.employeeId,
+        paidLeaveBalance: calculatedPaidLeave,
+        unpaidLeaveBalance: employee.unpaidLeaveBalance,
+        halfDayLeaveBalance: employee.halfDayLeaveBalance,
+        isEligibleForPaidLeaves: isEligible,
+      }
+    });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    res.status(500).json({ message: 'Server error while updating profile' });
+  }
+});
+
 module.exports = router;
