@@ -4,6 +4,7 @@ const Attendance = require('../models/Attendance');
 const SalarySlip = require('../models/SalarySlip');
 const auth = require('../middleware/auth');
 const { createObjectCsvStringifier } = require('csv-writer');
+const moment = require('moment-timezone');
 
 /**
  * Punch In / Out
@@ -238,9 +239,13 @@ router.post('/admin/punch', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
   const { employeeId, date, punchIn, punchOut } = req.body;
   try {
+    // Parse punchIn and punchOut as IST and convert to UTC for storage
+    const punchInUTC = punchIn ? moment.tz(punchIn, 'Asia/Kolkata').utc().toDate() : undefined;
+    const punchOutUTC = punchOut ? moment.tz(punchOut, 'Asia/Kolkata').utc().toDate() : undefined;
+
     const attendance = await Attendance.findOneAndUpdate(
       { employee: employeeId, date: new Date(date) },
-      { punchIn: punchIn ? new Date(punchIn) : undefined, punchOut: punchOut ? new Date(punchOut) : undefined },
+      { punchIn: punchInUTC, punchOut: punchOutUTC },
       { new: true, upsert: true }
     );
     res.json(attendance);
@@ -355,8 +360,8 @@ router.put('/admin/edit/:id', auth, async (req, res) => {
   const { punchIn, punchOut, holiday, halfDay } = req.body;
   try {
     const update = {};
-    if (punchIn !== undefined) update.punchIn = punchIn ? new Date(punchIn) : null;
-    if (punchOut !== undefined) update.punchOut = punchOut ? new Date(punchOut) : null;
+    if (punchIn !== undefined) update.punchIn = punchIn ? moment.tz(punchIn, 'Asia/Kolkata').utc().toDate() : null;
+    if (punchOut !== undefined) update.punchOut = punchOut ? moment.tz(punchOut, 'Asia/Kolkata').utc().toDate() : null;
     if (holiday !== undefined) update.holiday = holiday;
     if (halfDay !== undefined) update.halfDay = halfDay;
 
