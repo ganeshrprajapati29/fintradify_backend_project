@@ -3,6 +3,7 @@ const router = express.Router();
 const Attendance = require('../models/Attendance');
 const SalarySlip = require('../models/SalarySlip');
 const Notification = require('../models/Notification');
+const Settings = require('../models/Settings');
 const auth = require('../middleware/auth');
 const { createObjectCsvStringifier } = require('csv-writer');
 const moment = require('moment-timezone');
@@ -44,8 +45,19 @@ router.post('/punch', auth, async (req, res) => {
         return res.status(400).json({ message: 'Already punched out today' });
       }
       existingAttendance.punchOut = new Date();
+      existingAttendance.status = 'pending'; // Set status to pending for admin approval
       await existingAttendance.save();
-      return res.json({ message: 'Punch-out recorded', attendance: existingAttendance });
+
+      // Create notification for admin
+      const adminNotification = new Notification({
+        type: 'attendance_pending',
+        message: `${req.user.name} (${req.user.employeeId}) has punched out for ${new Date().toLocaleDateString('en-IN')}. Please review and approve/reject.`,
+        recipient: 'admin',
+        relatedId: existingAttendance._id,
+      });
+      await adminNotification.save();
+
+      return res.json({ message: 'Punch-out recorded and sent for approval', attendance: existingAttendance });
     }
 
     return res.status(400).json({ message: 'Invalid punch type' });
@@ -70,6 +82,22 @@ router.get('/', auth, async (req, res) => {
   } catch (err) {
     console.error('Fetch attendance error:', err);
     res.status(500).json({ message: 'Server error while fetching attendance' });
+  }
+});
+
+/**
+ * Admin: Get Pending Attendance
+ */
+router.get('/pending', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  try {
+    const pendingAttendances = await Attendance.find({ status: 'pending' })
+      .populate('employee', 'employeeId name')
+      .sort({ date: -1 });
+    res.json(pendingAttendances);
+  } catch (err) {
+    console.error('Fetch pending attendance error:', err);
+    res.status(500).json({ message: 'Server error while fetching pending attendance' });
   }
 });
 
@@ -386,6 +414,62 @@ router.delete('/admin/delete/:id', auth, async (req, res) => {
   } catch (err) {
     console.error('Delete attendance error:', err);
     res.status(500).json({ message: 'Server error while deleting attendance' });
+  }
+});
+
+/**
+ * Admin: Approve Attendance Punch
+ */
+router.put('/admin/approve/:id', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  try {
+    const attendance = await Attendance.findById(req.params.id).populate('employee', 'employeeId name');
+    if (!attendance) return res.status(404).json({ message: 'Attendance record not found' });
+
+    // Mark as approved (you can add an approved field to the model if needed)
+    // For now, we'll just create a notification for the employee
+    const notification = new Notification({
+      type: 'attendance_approved',
+      message: `Your attendance for ${new Date(attendance.date).toLocaleDateString('en-IN')} has been approved`,
+      recipient: attendance.employee._id.toString(),
+      relatedId: attendance._id,
+    });
+    await notification.save();
+
+    res.json({ message: 'Attendance approved', attendance });
+  } catch (err) {
+    console.error('Approve attendance error:', err);
+    res.status(500).json({ message: 'Server error while approving attendance' });
+  }
+});
+
+/**
+ * Admin: Reject Attendance Punch
+ */
+router.put('/admin/reject/:id', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  const { reason } = req.body;
+  try {
+    const attendance = await Attendance.findById(req.params.id).populate('employee', 'employeeId name');
+    if (!attendance) return res.status(404).json({ message: 'Attendance record not found' });
+
+    // Update attendance status to rejected
+    attendance.status = 'rejected';
+    await attendance.save();
+
+    // Create notification for employee about rejection
+    const notification = new Notification({
+      type: 'attendance_rejected',
+      message: `Your attendance for ${new Date(attendance.date).toLocaleDateString('en-IN')} has been rejected${reason ? `: ${reason}` : ''}`,
+      recipient: attendance.employee._id.toString(),
+      relatedId: attendance._id,
+    });
+    await notification.save();
+
+    res.json({ message: 'Attendance rejected', attendance });
+  } catch (err) {
+    console.error('Reject attendance error:', err);
+    res.status(500).json({ message: 'Server error while rejecting attendance' });
   }
 });
 
