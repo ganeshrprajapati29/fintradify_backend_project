@@ -17,6 +17,16 @@ router.post('/', auth, async (req, res) => {
       status: result.status,
     });
     await leave.save();
+
+    // Create notification for admin
+    const notification = new Notification({
+      type: 'leave_request',
+      message: `New leave request from employee`,
+      recipient: 'admin',
+      relatedId: leave._id,
+    });
+    await notification.save();
+
     res.json({ leave, deduction: result.deduction });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
@@ -55,6 +65,15 @@ router.put('/:id', auth, async (req, res) => {
 
     leave.status = status;
     await leave.save();
+
+    // Create notification for employee about leave status update
+    const notification = new Notification({
+      type: 'leave_status',
+      message: `Your leave request has been ${status}`,
+      recipient: leave.employee._id.toString(),
+      relatedId: leave._id,
+    });
+    await notification.save();
 
     res.json(leave);
   } catch (err) {

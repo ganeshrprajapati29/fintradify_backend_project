@@ -10,8 +10,17 @@ const salaryRoutes = require('./routes/salary');
 const taskRoutes = require('./routes/task');
 const featuresRoutes = require('./routes/features');
 const settingsRoutes = require('./routes/settings');
+const notificationRoutes = require('./routes/notification');
 const cors = require('cors');
 require('dotenv').config();
+
+// Configure Cloudinary
+const cloudinary = require('cloudinary').v2;
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 const app = express();
 
@@ -31,6 +40,7 @@ app.use('/api/salary', salaryRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/features', featuresRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/notifications', notificationRoutes);
 // ===== Root Route =====
 app.get('/', (req, res) => {
   res.send('🚀 HR Fintradify Backend LIVE');

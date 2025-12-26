@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "cloudinary": "^2.8.0",
     "cors": "^2.8.5",
     "csv": "^6.3.11",
     "csv-writer": "^1.6.0",
@@ -12,6 +13,7 @@
     "jsonwebtoken": "^8.5.1",
     "moment-timezone": "^0.6.0",
     "mongoose": "^6.0.12",
+    "multer": "^2.0.2",
     "nodemailer": "^6.7.0",
     "nodemon": "^3.1.11",
     "pdfkit": "^0.13.0"

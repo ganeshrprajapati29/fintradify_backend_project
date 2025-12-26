@@ -7,6 +7,7 @@ const attendanceSchema = new mongoose.Schema({
   punchOut: { type: Date },
   holiday: { type: Boolean, default: false },
   halfDay: { type: Boolean, default: false },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
 });
 
 module.exports = mongoose.model('Attendance', attendanceSchema);

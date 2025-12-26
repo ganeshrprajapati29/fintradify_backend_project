@@ -234,4 +234,52 @@ router.put('/notifications', auth, async (req, res) => {
   }
 });
 
+/**
+ * Upload Company Logo (Admin only)
+ */
+router.post('/logo', auth, upload.single('logo'), async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    // Upload to Cloudinary
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'fintradify/company-logos',
+          public_id: `logo_${Date.now()}`,
+          transformation: [
+            { width: 300, height: 300, crop: 'fill' },
+            { quality: 'auto' }
+          ]
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      stream.end(req.file.buffer);
+    });
+
+    // Update settings with new logo URL
+    const settings = await Settings.findOneAndUpdate(
+      {},
+      { companyLogo: result.secure_url },
+      { new: true, upsert: true }
+    );
+
+    res.json({
+      success: true,
+      message: 'Company logo updated successfully',
+      logoUrl: result.secure_url
+    });
+  } catch (error) {
+    console.error('Logo upload error:', error);
+    res.status(500).json({ message: 'Error uploading logo' });
+  }
+});
+
 module.exports = router;

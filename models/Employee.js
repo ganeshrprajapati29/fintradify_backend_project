@@ -10,6 +10,7 @@ const employeeSchema = new mongoose.Schema({
   role: { type: String, enum: ['admin', 'employee'], default: 'employee' },
   status: { type: String, enum: ['active', 'terminated', 'blocked'], default: 'active' },
   joiningDate: { type: Date, required: true },
+  profilePhoto: { type: String, default: '' },
   paidLeaveBalance: { type: Number, default: 0 },
   unpaidLeaveBalance: { type: Number, default: 6 },
   halfDayLeaveBalance: { type: Number, default: 0 },

@@ -7,6 +7,12 @@ const auth = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
 const { sendEmail } = require('../utils/sendEmail');
 const { blockEmployee, unblockEmployee } = require('../services/employeeService');
+const cloudinary = require('cloudinary').v2;
+const multer = require('multer');
+
+// Configure multer for memory storage
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 const generateEmployeeId = async () => {
   let employeeId;
@@ -278,9 +284,91 @@ router.put('/:id/unblock', auth, async (req, res) => {
   }
 });
 
+// Upload photo for self (employee)
+router.post('/upload-photo', auth, upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    // Upload to Cloudinary
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'fintradify-profiles',
+          public_id: `employee-${req.user.id}-${Date.now()}`,
+          transformation: [
+            { width: 300, height: 300, crop: 'fill', gravity: 'face' },
+            { quality: 'auto' }
+          ]
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      stream.end(req.file.buffer);
+    });
+
+    // Update employee profile photo
+    const employee = await Employee.findById(req.user.id);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    employee.profilePhoto = result.secure_url;
+    await employee.save();
+
+    res.json({ photoUrl: result.secure_url, message: 'Photo uploaded successfully' });
+  } catch (err) {
+    console.error('Upload photo error:', err);
+    res.status(500).json({ message: 'Server error while uploading photo' });
+  }
+});
+
+// Upload photo for employee by admin
+router.post('/:id/upload-photo', auth, upload.single('photo'), async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    // Upload to Cloudinary
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder: 'fintradify-profiles',
+          public_id: `employee-${req.params.id}-${Date.now()}`,
+          transformation: [
+            { width: 300, height: 300, crop: 'fill', gravity: 'face' },
+            { quality: 'auto' }
+          ]
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+      stream.end(req.file.buffer);
+    });
+
+    // Update employee profile photo
+    const employee = await Employee.findById(req.params.id);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    employee.profilePhoto = result.secure_url;
+    await employee.save();
+
+    res.json({ photoUrl: result.secure_url, message: 'Photo uploaded successfully' });
+  } catch (err) {
+    console.error('Upload photo error:', err);
+    res.status(500).json({ message: 'Server error while uploading photo' });
+  }
+});
+
 router.put('/profile', auth, async (req, res) => {
   // Now proceed with profile update
-  const { name, email, phone, position, salary } = req.body;
+  const { name, email, phone, position, salary, profilePhoto } = req.body;
   try {
     const employee = await Employee.findById(req.user.id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
@@ -303,6 +391,7 @@ router.put('/profile', auth, async (req, res) => {
     if (email) employee.email = email;
     if (phone) employee.phone = phone;
     if (position) employee.position = position;
+    if (profilePhoto !== undefined) employee.profilePhoto = profilePhoto;
 
     await employee.save();
 
