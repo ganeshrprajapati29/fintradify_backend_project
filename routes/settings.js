@@ -2,6 +2,12 @@ const express = require('express');
 const router = express.Router();
 const Settings = require('../models/Settings');
 const auth = require('../middleware/auth');
+const multer = require('multer');
+const cloudinary = require('cloudinary').v2;
+
+// Configure multer for memory storage
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 /**
  * Get Settings
