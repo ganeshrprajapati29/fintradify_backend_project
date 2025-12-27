@@ -20,7 +20,11 @@ const auth = async (req, res, next) => {
       }
     }
 
-    req.user = decoded;
+    req.user = {
+      ...decoded,
+      name: employee.name,
+      employeeId: employee.employeeId,
+    };
     next();
   } catch (err) {
     res.status(401).json({ message: 'Token is not valid' });
