@@ -450,8 +450,11 @@ router.put('/admin/approve/:id', auth, async (req, res) => {
     const attendance = await Attendance.findById(req.params.id).populate('employee', 'employeeId name');
     if (!attendance) return res.status(404).json({ message: 'Attendance record not found' });
 
-    // Mark as approved (you can add an approved field to the model if needed)
-    // For now, we'll just create a notification for the employee
+    // Update status to approved
+    attendance.status = 'approved';
+    await attendance.save();
+
+    // Create notification for the employee
     const notification = new Notification({
       type: 'attendance_approved',
       message: `Your attendance for ${new Date(attendance.date).toLocaleDateString('en-IN')} has been approved`,
