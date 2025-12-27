@@ -68,30 +68,6 @@ router.post('/punch', auth, async (req, res) => {
 });
 
 /**
- * Get Attendance by ID
- */
-router.get('/:id', auth, async (req, res) => {
-  try {
-    const attendance = await Attendance.findById(req.params.id).populate('employee', 'employeeId name');
-    if (!attendance) {
-      // Return a default object instead of 404 to prevent frontend errors
-      return res.status(200).json({
-        message: 'Attendance record not found',
-        employee: { name: 'Unknown Employee', employeeId: 'N/A' },
-        date: new Date(),
-        punchIn: null,
-        punchOut: null,
-        status: 'unknown'
-      });
-    }
-    res.json(attendance);
-  } catch (err) {
-    console.error('Fetch attendance by ID error:', err);
-    res.status(500).json({ message: 'Server error while fetching attendance' });
-  }
-});
-
-/**
  * Admin: Get All Attendance
  */
 router.get('/', auth, async (req, res) => {
@@ -203,6 +179,30 @@ router.get('/overview', auth, async (req, res) => {
   } catch (err) {
     console.error('Fetch overview error:', err);
     res.status(500).json({ message: 'Server error while fetching attendance overview' });
+  }
+});
+
+/**
+ * Get Attendance by ID
+ */
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const attendance = await Attendance.findById(req.params.id).populate('employee', 'employeeId name');
+    if (!attendance) {
+      // Return a default object instead of 404 to prevent frontend errors
+      return res.status(200).json({
+        message: 'Attendance record not found',
+        employee: { name: 'Unknown Employee', employeeId: 'N/A' },
+        date: new Date(),
+        punchIn: null,
+        punchOut: null,
+        status: 'unknown'
+      });
+    }
+    res.json(attendance);
+  } catch (err) {
+    console.error('Fetch attendance by ID error:', err);
+    res.status(500).json({ message: 'Server error while fetching attendance' });
   }
 });
 
