@@ -51,7 +51,7 @@ router.post('/punch', auth, async (req, res) => {
       // Create notification for admin
       const adminNotification = new Notification({
         type: 'attendance_pending',
-        message: `${req.user.name} (${req.user.employeeId}) has punched out for ${new Date().toLocaleDateString('en-IN')}. Please review and approve/reject.`,
+        message: `An employee has punched out. Please review and approve/reject.`,
         recipient: 'admin',
         relatedId: existingAttendance._id,
       });
@@ -64,6 +64,20 @@ router.post('/punch', auth, async (req, res) => {
   } catch (err) {
     console.error('Punch error:', err);
     res.status(500).json({ message: 'Server error while recording punch' });
+  }
+});
+
+/**
+ * Get Attendance by ID
+ */
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const attendance = await Attendance.findById(req.params.id).populate('employee', 'employeeId name');
+    if (!attendance) return res.status(404).json({ message: 'Attendance record not found' });
+    res.json(attendance);
+  } catch (err) {
+    console.error('Fetch attendance by ID error:', err);
+    res.status(500).json({ message: 'Server error while fetching attendance' });
   }
 });
 
