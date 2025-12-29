@@ -61,10 +61,18 @@ async function getAllEmployeesLeaveData() {
   return employees.map(emp => {
     const now = new Date();
     const joinDate = new Date(emp.joiningDate);
-    const monthsWorked = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
-    const isEligible = monthsWorked >= 6;
-    const eligibilityDate = new Date(joinDate);
-    eligibilityDate.setMonth(eligibilityDate.getMonth() + 6);
+    let monthsWorked = 0;
+    let isEligible = false;
+    let eligibilityDateStr = '';
+
+    if (!isNaN(joinDate.getTime())) {
+      monthsWorked = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
+      isEligible = monthsWorked >= 6;
+      const eligibilityDate = new Date(joinDate);
+      eligibilityDate.setMonth(eligibilityDate.getMonth() + 6);
+      eligibilityDateStr = eligibilityDate.toISOString().split('T')[0];
+    }
+
     return {
       employeeId: emp.employeeId,
       name: emp.name,
@@ -72,7 +80,7 @@ async function getAllEmployeesLeaveData() {
       remainingLeaves: emp.paidLeaveBalance,
       usedPaidLeaves: emp.usedPaidLeaves || 0,
       joiningDate: emp.joiningDate,
-      eligibilityDate: eligibilityDate.toISOString().split('T')[0],
+      eligibilityDate: eligibilityDateStr,
     };
   });
 }
@@ -82,10 +90,18 @@ async function getEmployeeLeaveData(employeeId) {
   if (!emp) throw new Error('Employee not found');
   const now = new Date();
   const joinDate = new Date(emp.joiningDate);
-  const monthsWorked = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
-  const isEligible = monthsWorked >= 6;
-  const eligibilityDate = new Date(joinDate);
-  eligibilityDate.setMonth(eligibilityDate.getMonth() + 6);
+  let monthsWorked = 0;
+  let isEligible = false;
+  let eligibilityDateStr = '';
+
+  if (!isNaN(joinDate.getTime())) {
+    monthsWorked = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
+    isEligible = monthsWorked >= 6;
+    const eligibilityDate = new Date(joinDate);
+    eligibilityDate.setMonth(eligibilityDate.getMonth() + 6);
+    eligibilityDateStr = eligibilityDate.toISOString().split('T')[0];
+  }
+
   return {
     employeeId: emp.employeeId,
     name: emp.name,
@@ -93,7 +109,7 @@ async function getEmployeeLeaveData(employeeId) {
     remainingLeaves: emp.paidLeaveBalance,
     usedPaidLeaves: emp.usedPaidLeaves || 0,
     joiningDate: emp.joiningDate,
-    eligibilityDate: eligibilityDate.toISOString().split('T')[0],
+    eligibilityDate: eligibilityDateStr,
   };
 }
 
