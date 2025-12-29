@@ -500,4 +500,62 @@ router.put('/admin/reject/:id', auth, async (req, res) => {
   }
 });
 
+/**
+ * Admin: Get Approved Attendances with Pagination
+ */
+router.get('/approved', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  const { page = 1, limit = 10, startDate, endDate } = req.query;
+  const query = { status: 'approved' };
+  if (startDate && endDate) {
+    query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
+  }
+  try {
+    const attendances = await Attendance.find(query)
+      .populate('employee', 'employeeId name')
+      .sort({ date: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+    const total = await Attendance.countDocuments(query);
+    res.json({
+      attendances,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      total
+    });
+  } catch (err) {
+    console.error('Fetch approved attendance error:', err);
+    res.status(500).json({ message: 'Server error while fetching approved attendance' });
+  }
+});
+
+/**
+ * Admin: Get Rejected Attendances with Pagination
+ */
+router.get('/rejected', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  const { page = 1, limit = 10, startDate, endDate } = req.query;
+  const query = { status: 'rejected' };
+  if (startDate && endDate) {
+    query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
+  }
+  try {
+    const attendances = await Attendance.find(query)
+      .populate('employee', 'employeeId name')
+      .sort({ date: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+    const total = await Attendance.countDocuments(query);
+    res.json({
+      attendances,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      total
+    });
+  } catch (err) {
+    console.error('Fetch rejected attendance error:', err);
+    res.status(500).json({ message: 'Server error while fetching rejected attendance' });
+  }
+});
+
 module.exports = router;
