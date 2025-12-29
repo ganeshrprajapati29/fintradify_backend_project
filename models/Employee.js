@@ -15,6 +15,7 @@ const employeeSchema = new mongoose.Schema({
   unpaidLeaveBalance: { type: Number, default: 6 },
   halfDayLeaveBalance: { type: Number, default: 0 },
   usedPaidLeaves: { type: Number, default: 0 },
+  lastLeaveAccrual: { type: Date, default: null },
   createdAt: { type: Date, default: Date.now },
 });
 

@@ -33,37 +33,50 @@ async function applyLeave(employeeId, startDate, endDate) {
   const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1; // inclusive
 
   let deduction = 0;
-  let status = 'approved';
+  let status = 'pending'; // Leave requests are pending until approved
 
-  if (days <= employee.paidLeaveBalance) {
-    employee.paidLeaveBalance -= days;
-  } else if (days <= employee.paidLeaveBalance + employee.halfDayLeaveBalance * 0.5) {
-    const fullDays = Math.floor(employee.paidLeaveBalance);
-    const halfDaysNeeded = (days - fullDays) * 2;
-    employee.paidLeaveBalance -= fullDays;
-    employee.halfDayLeaveBalance -= halfDaysNeeded;
+  // Check if employee has enough balance for the requested leave
+  if (employee.status === 'active') {
+    if (days <= employee.paidLeaveBalance) {
+      status = 'approved'; // Auto-approve if enough balance
+      employee.paidLeaveBalance -= days;
+      employee.usedPaidLeaves = (employee.usedPaidLeaves || 0) + days;
+      await employee.save();
+    } else if (days <= employee.paidLeaveBalance + employee.halfDayLeaveBalance * 0.5) {
+      status = 'approved'; // Auto-approve if enough balance including half days
+      const fullDays = Math.floor(employee.paidLeaveBalance);
+      const halfDaysNeeded = (days - fullDays) * 2;
+      employee.paidLeaveBalance -= fullDays;
+      employee.halfDayLeaveBalance -= halfDaysNeeded;
+      employee.usedPaidLeaves = (employee.usedPaidLeaves || 0) + days;
+      await employee.save();
+    } else {
+      // Not enough leave, will require approval or salary deduction
+      status = 'pending';
+    }
   } else {
-    // Not enough leave, deduct salary
-    const remainingDays = days - (employee.paidLeaveBalance + employee.halfDayLeaveBalance * 0.5);
-    employee.paidLeaveBalance = 0;
-    employee.halfDayLeaveBalance = 0;
-    deduction = remainingDays; // days to deduct salary
-    status = 'approved with deduction';
+    status = 'rejected'; // Non-active employees cannot request leave
   }
-
-  await employee.save();
 
   return { status, deduction };
 }
 
 async function getAllEmployeesLeaveData() {
-  const employees = await Employee.find().select('employeeId name joiningDate paidLeaveBalance usedPaidLeaves');
-  return employees.map(emp => {
+  const employees = await Employee.find().select('employeeId name joiningDate paidLeaveBalance usedPaidLeaves status lastLeaveAccrual');
+
+  // Accrue leaves for all eligible employees first
+  await Promise.all(employees.map(emp => accrueMonthlyLeaves(emp._id)));
+
+  // Fetch updated data
+  const updatedEmployees = await Employee.find().select('employeeId name joiningDate paidLeaveBalance usedPaidLeaves status lastLeaveAccrual');
+
+  return updatedEmployees.map(emp => {
     const now = new Date();
     const joinDate = new Date(emp.joiningDate);
     let monthsWorked = 0;
     let isEligible = false;
     let eligibilityDateStr = '';
+    let remainingLeaves = emp.paidLeaveBalance;
 
     if (!isNaN(joinDate.getTime())) {
       monthsWorked = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
@@ -73,26 +86,38 @@ async function getAllEmployeesLeaveData() {
       eligibilityDateStr = eligibilityDate.toISOString().split('T')[0];
     }
 
+    // For blocked/terminated employees, show 0 remaining leaves
+    if (emp.status === 'blocked' || emp.status === 'terminated') {
+      remainingLeaves = 0;
+    }
+
     return {
       employeeId: emp.employeeId,
       name: emp.name,
       isEligible,
-      remainingLeaves: emp.paidLeaveBalance,
+      remainingLeaves,
       usedPaidLeaves: emp.usedPaidLeaves || 0,
       joiningDate: emp.joiningDate,
       eligibilityDate: eligibilityDateStr,
+      status: emp.status,
     };
   });
 }
 
 async function getEmployeeLeaveData(employeeId) {
-  const emp = await Employee.findById(employeeId).select('employeeId name joiningDate paidLeaveBalance usedPaidLeaves');
+  // Accrue leaves first
+  await accrueMonthlyLeaves(employeeId);
+
+  // Fetch updated employee data
+  const emp = await Employee.findById(employeeId).select('employeeId name joiningDate paidLeaveBalance usedPaidLeaves status');
   if (!emp) throw new Error('Employee not found');
+
   const now = new Date();
   const joinDate = new Date(emp.joiningDate);
   let monthsWorked = 0;
   let isEligible = false;
   let eligibilityDateStr = '';
+  let remainingLeaves = emp.paidLeaveBalance;
 
   if (!isNaN(joinDate.getTime())) {
     monthsWorked = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
@@ -102,15 +127,51 @@ async function getEmployeeLeaveData(employeeId) {
     eligibilityDateStr = eligibilityDate.toISOString().split('T')[0];
   }
 
+  // For blocked/terminated employees, show 0 remaining leaves
+  if (emp.status === 'blocked' || emp.status === 'terminated') {
+    remainingLeaves = 0;
+  }
+
   return {
     employeeId: emp.employeeId,
     name: emp.name,
     isEligible,
-    remainingLeaves: emp.paidLeaveBalance,
+    remainingLeaves,
     usedPaidLeaves: emp.usedPaidLeaves || 0,
     joiningDate: emp.joiningDate,
     eligibilityDate: eligibilityDateStr,
+    status: emp.status,
   };
 }
 
-module.exports = { calculateLeaveBalances, applyLeave, getAllEmployeesLeaveData, getEmployeeLeaveData };
+// Accrue monthly leaves for eligible employees
+async function accrueMonthlyLeaves(employeeId) {
+  try {
+    const employee = await Employee.findById(employeeId);
+    if (!employee || employee.status !== 'active') return;
+
+    const now = new Date();
+    const joinDate = new Date(employee.joiningDate);
+
+    // Check if employee is eligible (6 months or more)
+    const monthsWorked = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
+    if (monthsWorked < 6) return;
+
+    // Check if we need to accrue leaves for this month
+    const lastAccrual = employee.lastLeaveAccrual ? new Date(employee.lastLeaveAccrual) : joinDate;
+    const currentMonth = now.getFullYear() * 12 + now.getMonth();
+    const lastAccrualMonth = lastAccrual.getFullYear() * 12 + lastAccrual.getMonth();
+
+    // Accrue 1.5 days per month (1 full + 0.5 half day)
+    const monthsToAccrue = currentMonth - lastAccrualMonth;
+    if (monthsToAccrue > 0) {
+      employee.paidLeaveBalance += monthsToAccrue * 1.5;
+      employee.lastLeaveAccrual = now;
+      await employee.save();
+    }
+  } catch (error) {
+    console.error('Error accruing monthly leaves:', error);
+  }
+}
+
+module.exports = { calculateLeaveBalances, applyLeave, getAllEmployeesLeaveData, getEmployeeLeaveData, accrueMonthlyLeaves };
