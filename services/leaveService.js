@@ -6,7 +6,7 @@ async function calculateLeaveBalances(employeeId) {
   if (!employee) throw new Error('Employee not found');
 
   const now = new Date();
-  const joinDate = new Date(employee.joinDate);
+  const joinDate = new Date(employee.joiningDate);
   const monthsWorked = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
 
   if (monthsWorked >= 6) {

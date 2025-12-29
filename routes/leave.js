@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Leave = require('../models/Leave');
+const Employee = require('../models/Employee');
+const Notification = require('../models/Notification');
 const auth = require('../middleware/auth');
 const { applyLeave, calculateLeaveBalances, getEmployeeLeaveData, getAllEmployeesLeaveData } = require('../services/leaveService');
 
@@ -88,7 +90,6 @@ router.put('/:id', auth, async (req, res) => {
 router.get('/balances', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
   try {
-    const Employee = require('../models/Employee');
     const employees = await Employee.find().select('employeeId name paidLeaveBalance halfDayLeaveBalance');
     const balances = await Promise.all(employees.map(async (emp) => {
       const balance = await calculateLeaveBalances(emp._id);
@@ -160,7 +161,11 @@ router.get('/my-employee-data', auth, async (req, res) => {
   }
 });
 
-router.get('/balances', auth, async (req, res) => {
+/**
+ * @route GET /my-balances
+ * @desc Get leave balances for current employee
+ */
+router.get('/my-balances', auth, async (req, res) => {
   try {
     const employee = await Employee.findById(req.user.id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
