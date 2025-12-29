@@ -57,7 +57,7 @@ async function applyLeave(employeeId, startDate, endDate) {
 }
 
 async function getAllEmployeesLeaveData() {
-  const employees = await Employee.find().select('employeeId name joiningDate paidLeaveBalance');
+  const employees = await Employee.find().select('employeeId name joiningDate paidLeaveBalance usedPaidLeaves');
   return employees.map(emp => {
     const now = new Date();
     const joinDate = new Date(emp.joiningDate);
@@ -70,6 +70,7 @@ async function getAllEmployeesLeaveData() {
       name: emp.name,
       isEligible,
       remainingLeaves: emp.paidLeaveBalance,
+      usedPaidLeaves: emp.usedPaidLeaves || 0,
       joiningDate: emp.joiningDate,
       eligibilityDate: eligibilityDate.toISOString().split('T')[0],
     };
@@ -77,7 +78,7 @@ async function getAllEmployeesLeaveData() {
 }
 
 async function getEmployeeLeaveData(employeeId) {
-  const emp = await Employee.findById(employeeId).select('employeeId name joiningDate paidLeaveBalance');
+  const emp = await Employee.findById(employeeId).select('employeeId name joiningDate paidLeaveBalance usedPaidLeaves');
   if (!emp) throw new Error('Employee not found');
   const now = new Date();
   const joinDate = new Date(emp.joiningDate);
@@ -90,6 +91,7 @@ async function getEmployeeLeaveData(employeeId) {
     name: emp.name,
     isEligible,
     remainingLeaves: emp.paidLeaveBalance,
+    usedPaidLeaves: emp.usedPaidLeaves || 0,
     joiningDate: emp.joiningDate,
     eligibilityDate: eligibilityDate.toISOString().split('T')[0],
   };
