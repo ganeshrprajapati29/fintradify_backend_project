@@ -39,17 +39,10 @@ async function applyLeave(employeeId, startDate, endDate) {
   if (employee.status === 'active') {
     if (days <= employee.paidLeaveBalance) {
       status = 'approved'; // Auto-approve if enough balance
-      employee.paidLeaveBalance -= days;
-      employee.usedPaidLeaves = (employee.usedPaidLeaves || 0) + days;
-      await employee.save();
+      // Balance will be deducted when approved in the PUT route
     } else if (days <= employee.paidLeaveBalance + employee.halfDayLeaveBalance * 0.5) {
       status = 'approved'; // Auto-approve if enough balance including half days
-      const fullDays = Math.floor(employee.paidLeaveBalance);
-      const halfDaysNeeded = (days - fullDays) * 2;
-      employee.paidLeaveBalance -= fullDays;
-      employee.halfDayLeaveBalance -= halfDaysNeeded;
-      employee.usedPaidLeaves = (employee.usedPaidLeaves || 0) + days;
-      await employee.save();
+      // Balance will be deducted when approved in the PUT route
     } else {
       // Not enough leave, will require approval or salary deduction
       status = 'pending';

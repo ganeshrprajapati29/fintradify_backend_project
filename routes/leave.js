@@ -167,18 +167,24 @@ router.get('/my-employee-data', auth, async (req, res) => {
  */
 router.get('/my-balances', auth, async (req, res) => {
   try {
+    // Accrue leaves first
+    await require('../services/leaveService').accrueMonthlyLeaves(req.user.id);
+
     const employee = await Employee.findById(req.user.id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
-    // Calculate paid leave balance based on joining date - eligible after 6 months with carry over
-    const now = new Date();
-    const joining = new Date(employee.joiningDate);
-    const monthsDiff = Math.floor((now - joining) / (1000 * 60 * 60 * 24 * 30)); // More accurate month calculation
-    const accruedPaidLeave = monthsDiff >= 6 ? Math.floor(monthsDiff * 1.5) : 0; // Eligible after 6 months, 1.5 days per month
-    const calculatedPaidLeave = Math.max(0, accruedPaidLeave - (employee.usedPaidLeaves || 0)); // Carry over unused leaves
+    // For blocked/terminated employees, show 0 balance
+    if (employee.status === 'blocked' || employee.status === 'terminated') {
+      return res.json({
+        paidLeaveBalance: 0,
+        unpaidLeaveBalance: employee.unpaidLeaveBalance,
+        halfDayLeaveBalance: employee.halfDayLeaveBalance,
+      });
+    }
 
+    // Return the actual stored balance (already accrued)
     res.json({
-      paidLeaveBalance: calculatedPaidLeave,
+      paidLeaveBalance: employee.paidLeaveBalance,
       unpaidLeaveBalance: employee.unpaidLeaveBalance,
       halfDayLeaveBalance: employee.halfDayLeaveBalance,
     });
