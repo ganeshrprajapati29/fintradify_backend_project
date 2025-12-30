@@ -17,9 +17,9 @@ const { sendEmail } = require('../utils/sendEmail');
  */
 router.post('/', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
-  const { employeeId, month, amount } = req.body;
+  const { employeeId, month, fixedAmount } = req.body;
   try {
-    if (!amount || amount <= 0) return res.status(400).json({ message: 'Valid amount is required' });
+    if (!fixedAmount || fixedAmount <= 0) return res.status(400).json({ message: 'Valid amount is required' });
 
     const employee = await Employee.findById(employeeId);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
