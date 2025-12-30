@@ -2,7 +2,7 @@ const Employee = require('../models/Employee');
 const Attendance = require('../models/Attendance');
 const SalarySlip = require('../models/SalarySlip');
 const { sendEmail } = require('../utils/sendEmail');
-const generatePDF = require('../utils/generatePDF');
+const { generateSalarySlipPDF } = require('../utils/generatePDF');
 
 async function generateMonthlySalarySlips(month, year) {
   const startDate = new Date(year, month - 1, 1);
@@ -29,13 +29,14 @@ async function generateMonthlySalarySlips(month, year) {
       employee: employee._id,
       month: `${year}-${month.toString().padStart(2, '0')}`,
       amount: Math.round(amount),
-      date: new Date()
+      date: new Date(),
+      generatedBy: null, // System generated
     });
 
     await salarySlip.save();
 
-    // Generate PDF
-    const pdfBuffer = await generatePDF(salarySlip);
+    // Generate PDF with employee data
+    const pdfBuffer = await generateSalarySlipPDF(salarySlip, employee);
 
     // Send email
     await sendEmail(employee.email, 'Monthly Salary Slip', 'Please find your salary slip attached.', pdfBuffer);

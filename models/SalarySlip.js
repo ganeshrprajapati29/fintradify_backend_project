@@ -5,6 +5,8 @@ const salarySlipSchema = new mongoose.Schema({
   month: { type: String, required: true },
   amount: { type: Number, required: true },
   date: { type: Date, default: Date.now },
+  status: { type: String, enum: ['generated', 'sent'], default: 'generated' },
+  generatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee', required: true },
 });
 
 module.exports = mongoose.model('SalarySlip', salarySlipSchema);

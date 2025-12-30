@@ -7,6 +7,7 @@ const employeeSchema = new mongoose.Schema({
   password: { type: String, required: true },
   phone: { type: String, required: true },
   position: { type: String, required: true },
+  salary: { type: Number, required: true, default: 0 },
   role: { type: String, enum: ['admin', 'employee'], default: 'employee' },
   status: { type: String, enum: ['active', 'terminated', 'blocked'], default: 'active' },
   joiningDate: { type: Date, required: true },
