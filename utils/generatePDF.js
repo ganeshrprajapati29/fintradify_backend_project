@@ -108,7 +108,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
       });
 
       // ==================== SALARY BREAKDOWN SECTION ====================
-      yPos += 130;
+      yPos += 150;
 
       // Section Title
       doc.fillColor('#1e293b')
@@ -119,8 +119,6 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
       yPos += 40;
 
       // Earnings Table
-      const basicSalary = parseFloat(salarySlip.amount) || 0;
-
       // Table Header
       doc.rect(50, yPos, doc.page.width - 100, 30)
          .fill('#1e3a8a')
@@ -137,40 +135,45 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
 
       // Earnings Rows
       const earnings = [
-        { description: 'Basic Salary', amount: basicSalary }
+        { description: 'Basic Pay', amount: salarySlip.basicPay || 0 },
+        { description: 'House Rent Allowance (HRA)', amount: salarySlip.hra || 0 },
+        { description: 'Conveyance Allowance', amount: salarySlip.conveyanceAllowance || 0 },
+        { description: 'Medical Allowance', amount: salarySlip.medicalAllowance || 0 },
+        { description: 'Leave Travel Allowance (LTA)', amount: salarySlip.lta || 0 },
+        { description: 'Other Allowances', amount: salarySlip.otherAllowances || 0 }
       ];
 
       earnings.forEach((earning, index) => {
         const rowColor = index % 2 === 0 ? '#ffffff' : '#f8fafc';
 
-        doc.rect(50, yPos, doc.page.width - 100, 30)
+        doc.rect(50, yPos, doc.page.width - 100, 25)
            .fill(rowColor)
            .stroke('#e2e8f0');
 
         doc.fillColor('#1e293b')
-           .fontSize(11)
+           .fontSize(10)
            .font('Helvetica')
-           .text(earning.description, 60, yPos + 10);
+           .text(earning.description, 60, yPos + 8);
 
         doc.font('Helvetica-Bold')
-           .text(`₹ ${earning.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, doc.page.width - 150, yPos + 10);
+           .text(`₹ ${earning.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, doc.page.width - 150, yPos + 8);
 
-        yPos += 30;
+        yPos += 25;
       });
 
       // Total Earnings Row
-      doc.rect(50, yPos, doc.page.width - 100, 35)
+      doc.rect(50, yPos, doc.page.width - 100, 30)
          .fill('#dbeafe')
          .stroke('#93c5fd');
 
       doc.fillColor('#1e3a8a')
-         .fontSize(14)
+         .fontSize(12)
          .font('Helvetica-Bold')
-         .text('TOTAL EARNINGS', 60, yPos + 12);
+         .text('TOTAL EARNINGS', 60, yPos + 8);
 
-      doc.text(`₹ ${basicSalary.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, doc.page.width - 150, yPos + 12);
+      doc.text(`₹ ${(salarySlip.totalEarnings || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, doc.page.width - 150, yPos + 8);
 
-      yPos += 50;
+      yPos += 40;
 
       // Deductions Table
       doc.fillColor('#1e293b')
@@ -192,41 +195,44 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
 
       yPos += 30;
 
-      // No Deductions
+      // Deductions Rows
       const deductions = [
-        { description: 'No Deductions Applied', amount: 0 }
+        { description: 'Provident Fund (PF)', amount: salarySlip.pf || 0 },
+        { description: 'Professional Tax', amount: salarySlip.professionalTax || 0 },
+        { description: 'Gratuity', amount: salarySlip.gratuity || 0 },
+        { description: 'Other Deductions', amount: salarySlip.otherDeductions || 0 }
       ];
 
       deductions.forEach((deduction, index) => {
         const rowColor = index % 2 === 0 ? '#ffffff' : '#f8fafc';
 
-        doc.rect(50, yPos, doc.page.width - 100, 30)
+        doc.rect(50, yPos, doc.page.width - 100, 25)
            .fill(rowColor)
            .stroke('#e2e8f0');
 
         doc.fillColor('#64748b')
-           .fontSize(11)
+           .fontSize(10)
            .font('Helvetica')
-           .text(deduction.description, 60, yPos + 10);
+           .text(deduction.description, 60, yPos + 8);
 
         doc.font('Helvetica-Bold')
            .fillColor('#dc2626')
-           .text(`₹ ${deduction.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, doc.page.width - 150, yPos + 10);
+           .text(`₹ ${deduction.amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, doc.page.width - 150, yPos + 8);
 
-        yPos += 30;
+        yPos += 25;
       });
 
       // Total Deductions Row
-      doc.rect(50, yPos, doc.page.width - 100, 35)
+      doc.rect(50, yPos, doc.page.width - 100, 30)
          .fill('#fee2e2')
          .stroke('#fca5a5');
 
       doc.fillColor('#dc2626')
-         .fontSize(14)
+         .fontSize(12)
          .font('Helvetica-Bold')
-         .text('TOTAL DEDUCTIONS', 60, yPos + 12);
+         .text('TOTAL DEDUCTIONS', 60, yPos + 8);
 
-      doc.text(`₹ ${0.00.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, doc.page.width - 150, yPos + 12);
+      doc.text(`₹ ${(salarySlip.totalDeductions || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, doc.page.width - 150, yPos + 8);
 
       // ==================== NET SALARY SECTION ====================
       yPos += 60;

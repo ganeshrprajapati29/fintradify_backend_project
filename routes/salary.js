@@ -135,4 +135,12 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// Helper function to get current financial year
+function getFinancialYear() {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const nextYear = currentYear + 1;
+  return `${currentYear}-${nextYear.toString().slice(2)}`;
+}
+
 module.exports = router;
