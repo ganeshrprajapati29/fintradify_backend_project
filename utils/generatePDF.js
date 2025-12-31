@@ -248,13 +248,13 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
          .text('NET SALARY PAYABLE', 60, yPos + 15);
 
       doc.fontSize(26)
-         .text(`₹ ${basicSalary.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, doc.page.width - 200, yPos + 12);
+         .text(`₹ ${(salarySlip.netSalary || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, doc.page.width - 200, yPos + 12);
 
       // Amount in Words
       doc.fillColor('#ffffff')
          .fontSize(11)
          .font('Helvetica')
-         .text(`In Words: ${numberToWords(basicSalary)} Rupees Only`, 60, yPos + 45);
+         .text(`In Words: ${numberToWords(salarySlip.netSalary || 0)} Rupees Only`, 60, yPos + 45);
 
       // ==================== PAYMENT DETAILS SECTION ====================
       yPos += 90;
