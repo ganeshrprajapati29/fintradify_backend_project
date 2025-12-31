@@ -9,6 +9,7 @@ const PDFDocument = require('pdfkit');
 const fs = require('fs');
 const path = require('path');
 const { sendEmail } = require('../utils/sendEmail');
+const { generateSalarySlipPDF } = require('../utils/generatePDF');
 
 
 /**
@@ -24,27 +25,36 @@ router.post('/', auth, async (req, res) => {
     const employee = await Employee.findById(employeeId);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
-    // Check if slip already exists for this month
-    const existingSlip = await SalarySlip.findOne({ employee: employeeId, month });
-    if (existingSlip) return res.status(400).json({ message: 'Salary slip already exists for this month' });
+
 
     const salarySlip = new SalarySlip({
       employee: employeeId,
       month,
-      amount: parseFloat(amount).toFixed(2),
+      amount: parseFloat(fixedAmount),
+      generatedBy: req.user.id,
     });
     await salarySlip.save();
 
     const pdfBuffer = await generateSalarySlipPDF(salarySlip, employee);
 
-    await sendEmail(
-      employee.email,
-      `Salary Slip for ${month}`,
-      `Dear ${employee.name},\n\nPlease find your salary slip for ${month} attached.\n\nRegards,\nFintradify HR Team`,
-      [{ filename: `salary-slip-${month}.pdf`, content: pdfBuffer }]
-    );
+    try {
+      await sendEmail(
+        employee.email,
+        `Salary Slip for ${month}`,
+        `Dear ${employee.name},\n\nPlease find your salary slip for ${month} attached.\n\nRegards,\nFintradify HR Team`,
+        [{ filename: `salary-slip-${month}.pdf`, content: pdfBuffer }]
+      );
 
-    res.json(salarySlip);
+      // Update status to 'sent' after successful email
+      salarySlip.status = 'sent';
+      await salarySlip.save();
+
+      res.json(salarySlip);
+    } catch (emailErr) {
+      console.error('Email sending failed:', emailErr);
+      // Salary slip is saved but email failed, status remains 'generated'
+      res.status(207).json({ message: 'Salary slip generated but email sending failed', salarySlip });
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

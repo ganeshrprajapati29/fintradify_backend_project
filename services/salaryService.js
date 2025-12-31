@@ -39,7 +39,21 @@ async function generateMonthlySalarySlips(month, year) {
     const pdfBuffer = await generateSalarySlipPDF(salarySlip, employee);
 
     // Send email
-    await sendEmail(employee.email, 'Monthly Salary Slip', 'Please find your salary slip attached.', pdfBuffer);
+    try {
+      await sendEmail(
+        employee.email,
+        'Monthly Salary Slip',
+        'Please find your salary slip attached.',
+        [{ filename: `salary-slip-${salarySlip.month}.pdf`, content: pdfBuffer }]
+      );
+
+      // Update status to 'sent' after successful email
+      salarySlip.status = 'sent';
+      await salarySlip.save();
+    } catch (emailErr) {
+      console.error('Email sending failed for employee:', employee.email, emailErr);
+      // Salary slip is saved but email failed, status remains 'generated'
+    }
   }
 }
 
