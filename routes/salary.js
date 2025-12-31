@@ -69,6 +69,7 @@ router.get('/download/:id', auth, async (req, res) => {
   try {
     const salarySlip = await SalarySlip.findById(req.params.id).populate('employee');
     if (!salarySlip) return res.status(404).json({ message: 'Salary slip not found' });
+    if (!salarySlip.employee) return res.status(404).json({ message: 'Employee data not found' });
     if (req.user.role !== 'admin' && req.user.id !== salarySlip.employee._id.toString())
       return res.status(403).json({ message: 'You do not have permission' });
 
@@ -78,7 +79,7 @@ router.get('/download/:id', auth, async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename=salary-slip-${salarySlip.month}.pdf`);
     res.end(pdfBuffer);
   } catch (err) {
-    console.error(err);
+    console.error('Download error:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });

@@ -25,25 +25,11 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
       doc.rect(0, 0, doc.page.width, 120)
          .fill('#1e3a8a');
 
-      // Company Logo
-      const logoPath = path.join(__dirname, '../assets/logoo.png');
-      if (fs.existsSync(logoPath)) {
-        try {
-          doc.image(logoPath, 50, 30, { width: 60, height: 60 });
-        } catch (err) {
-          console.log('Logo load error:', err);
-          // Fallback to text logo
-          doc.fillColor('#ffffff')
-             .fontSize(28)
-             .font('Helvetica-Bold')
-             .text('F', 55, 40);
-        }
-      } else {
-        doc.fillColor('#ffffff')
-           .fontSize(28)
-           .font('Helvetica-Bold')
-           .text('F', 55, 40);
-      }
+      // Company Logo - Simplified to text only
+      doc.fillColor('#ffffff')
+         .fontSize(28)
+         .font('Helvetica-Bold')
+         .text('F', 55, 40);
 
       // Company Name and Details
       doc.fillColor('#ffffff')
@@ -72,7 +58,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
          .fontSize(10)
          .text(`Slip No: ${salarySlip._id || 'SLIP-' + Date.now()}`, 450, 35);
 
-      doc.text(`Generated On: ${salarySlip.createdAt ? new Date(salarySlip.createdAt).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')}`, 450, 50);
+      doc.text(`Generated On: ${salarySlip.date ? new Date(salarySlip.date).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')}`, 450, 50);
 
       // ==================== EMPLOYEE DETAILS SECTION ====================
       let yPos = 140;
