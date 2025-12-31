@@ -7,7 +7,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
     try {
       const doc = new PDFDocument({
         size: 'A4',
-        margin: 50,
+        margin: 30,
         bufferPages: true
       });
 
@@ -25,11 +25,17 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
       doc.rect(0, 0, doc.page.width, 120)
          .fill('#1e3a8a');
 
-      // Company Logo - Simplified to text only
-      doc.fillColor('#ffffff')
-         .fontSize(28)
-         .font('Helvetica-Bold')
-         .text('F', 55, 40);
+      // Company Logo - Load from assets
+      const logoPath = path.join(__dirname, '../assets/logoo.png');
+      if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, 30, 25, { width: 60, height: 60 });
+      } else {
+        // Fallback to text if logo not found
+        doc.fillColor('#ffffff')
+           .fontSize(28)
+           .font('Helvetica-Bold')
+           .text('F', 55, 40);
+      }
 
       // Company Name and Details
       doc.fillColor('#ffffff')
@@ -254,7 +260,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
       doc.fillColor('#ffffff')
          .fontSize(11)
          .font('Helvetica')
-         .text(`In Words: ${numberToWords(salarySlip.netSalary || 0)} Rupees Only`, 60, yPos + 45);
+         .text(`In Words: ${numberToWords(salarySlip.netSalary || 0)} INR Only`, 60, yPos + 45);
 
       // ==================== PAYMENT DETAILS SECTION ====================
       yPos += 90;
