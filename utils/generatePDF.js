@@ -232,10 +232,9 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
       yPos += 60;
 
       // Net Salary Card
-      doc.rect(50, yPos, doc.page.width - 100, 70)
+      doc.roundedRect(50, yPos, doc.page.width - 100, 70, 8)
          .fill('#10b981')
-         .stroke('#10b981')
-         .roundedCorners(8);
+         .stroke('#10b981');
 
       doc.fillColor('#ffffff')
          .fontSize(22)
