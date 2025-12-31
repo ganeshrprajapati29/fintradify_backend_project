@@ -119,7 +119,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
       yPos += 40;
 
       // Earnings Table
-      const basicSalary = salarySlip.amount || 0;
+      const basicSalary = parseFloat(salarySlip.amount) || 0;
 
       // Table Header
       doc.rect(50, yPos, doc.page.width - 100, 30)
@@ -321,14 +321,10 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
 
       doc.text(`Document Generated on: ${new Date().toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}`, 0, doc.page.height - 25, { align: 'center' });
 
-      // Page Number
-      const pages = doc.bufferedPageRange();
-      for (let i = 0; i < pages.count; i++) {
-        doc.switchToPage(i);
-        doc.fillColor('#94a3b8')
-           .fontSize(9)
-           .text(`Page ${i + 1} of ${pages.count}`, doc.page.width - 70, doc.page.height - 25);
-      }
+      // Page Number (assuming single page)
+      doc.fillColor('#94a3b8')
+         .fontSize(9)
+         .text(`Page 1 of 1`, doc.page.width - 70, doc.page.height - 25);
 
       doc.end();
 
