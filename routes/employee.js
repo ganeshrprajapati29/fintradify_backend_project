@@ -85,6 +85,9 @@ router.post('/', auth, async (req, res) => {
       position,
       department,
       bankAccount,
+      bankName,
+      salary: salary || 0,
+      joiningDate: joiningDate || new Date(),
       password: hashedPassword,
       role: 'employee',
     });

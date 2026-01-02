@@ -4,6 +4,7 @@ const salarySlipSchema = new mongoose.Schema({
   employee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee', required: true },
   month: { type: String, required: true },
   year: { type: Number, required: true },
+  amount: { type: Number, default: 0 }, // Monthly salary amount
   // Salary Components
   basicPay: { type: Number, required: true },
   hra: { type: Number, default: 0 },

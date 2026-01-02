@@ -52,6 +52,7 @@ async function generateMonthlySalarySlips(month, year) {
       employee: employee._id,
       month: `${year}-${month.toString().padStart(2, '0')}`,
       year: year,
+      amount: monthlySalary,
       basicPay,
       hra,
       conveyanceAllowance,
