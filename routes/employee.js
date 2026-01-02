@@ -203,6 +203,7 @@ router.put('/:id', auth, async (req, res) => {
     employee.bankName = bankName !== undefined ? bankName : employee.bankName;
     if (joiningDate) employee.joiningDate = new Date(joiningDate);
     if (password) employee.password = await bcrypt.hash(password, 10);
+    if (salary !== undefined) employee.salary = parseFloat(salary) || 0;
 
     await employee.save();
 
@@ -307,7 +308,7 @@ router.put('/:id', auth, async (req, res) => {
     }
 
     const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
-    res.json({ ...employee._doc, salary: latestSalary ? latestSalary.amount : 'N/A' });
+    res.json({ ...employee._doc, salary: latestSalary ? latestSalary.netSalary : 'N/A' });
   } catch (err) {
     console.error('Update employee error:', err);
     res.status(500).json({ message: 'Server error while updating employee' });

@@ -91,7 +91,7 @@ const unblockEmployee = async (employeeId, adminId) => {
   let salary = 'N/A';
   try {
     const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
-    salary = latestSalary ? latestSalary.amount : 'N/A';
+    salary = latestSalary ? latestSalary.netSalary : 'N/A';
   } catch (salaryErr) {
     console.error('Error fetching salary:', salaryErr);
   }
