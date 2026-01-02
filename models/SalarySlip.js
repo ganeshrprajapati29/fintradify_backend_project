@@ -24,6 +24,7 @@ const salarySlipSchema = new mongoose.Schema({
   // Additional Info
   workingDays: { type: Number, default: 30 },
   presentDays: { type: Number, default: 0 },
+  hoursWorked: { type: Number, default: 160 },
   paymentMode: { type: String, default: 'Bank Transfer' },
   bankAccount: { type: String, default: '' },
   bankName: { type: String, default: '' },
