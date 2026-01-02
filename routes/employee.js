@@ -535,9 +535,14 @@ router.put('/profile', auth, async (req, res) => {
         month: currentMonth,
       });
 
+      // Ensure salary is a valid number
+      const monthlySalary = parseFloat(salary);
+      if (isNaN(monthlySalary) || monthlySalary < 0) {
+        return res.status(400).json({ message: 'Invalid salary amount' });
+      }
+
       if (salarySlip) {
         // Update existing salary slip with new amount and recalculate components
-        const monthlySalary = parseFloat(salary);
         const basicPay = Math.round(monthlySalary * 0.35); // 35% of total salary
         const hra = Math.round(basicPay * 0.4); // 40% of basic pay
         const conveyanceAllowance = Math.min(19200, Math.round(monthlySalary * 0.1)); // Conveyance allowance (max 19200/year)
@@ -578,7 +583,6 @@ router.put('/profile', auth, async (req, res) => {
         await salarySlip.save();
       } else if (salary > 0) {
         // Create new salary slip with all required fields
-        const monthlySalary = parseFloat(salary);
         const basicPay = Math.round(monthlySalary * 0.35); // 35% of total salary
         const hra = Math.round(basicPay * 0.4); // 40% of basic pay
         const conveyanceAllowance = Math.min(19200, Math.round(monthlySalary * 0.1)); // Conveyance allowance (max 19200/year)
