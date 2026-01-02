@@ -60,7 +60,7 @@ router.get('/', auth, async (req, res) => {
 
 router.post('/', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
-  const { name, email, phone, position, salary, joiningDate } = req.body;
+  const { name, email, phone, position, department, bankAccount, salary, joiningDate } = req.body;
   try {
     let employee = await Employee.findOne({ email });
     if (employee) return res.status(400).json({ message: 'Employee already exists' });
@@ -75,6 +75,8 @@ router.post('/', auth, async (req, res) => {
       email,
       phone,
       position,
+      department,
+      bankAccount,
       password: hashedPassword,
       role: 'employee',
     });
@@ -136,7 +138,7 @@ router.post('/', auth, async (req, res) => {
 
 router.put('/:id', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
-  const { name, email, phone, position, password, salary, joiningDate } = req.body;
+  const { name, email, phone, position, department, bankAccount, password, salary, joiningDate } = req.body;
   try {
     const employee = await Employee.findById(req.params.id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
@@ -145,6 +147,8 @@ router.put('/:id', auth, async (req, res) => {
     employee.email = email || employee.email;
     employee.phone = phone || employee.phone;
     employee.position = position || employee.position;
+    employee.department = department !== undefined ? department : employee.department;
+    employee.bankAccount = bankAccount !== undefined ? bankAccount : employee.bankAccount;
     if (joiningDate) employee.joiningDate = new Date(joiningDate);
     if (password) employee.password = await bcrypt.hash(password, 10);
 

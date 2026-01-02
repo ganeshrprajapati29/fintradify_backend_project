@@ -31,6 +31,8 @@ router.post('/', auth, async (req, res) => {
       employee: employeeId,
       month,
       amount: parseFloat(fixedAmount),
+      bankAccount: employee.bankAccount || '',
+      department: employee.department || '',
       generatedBy: req.user.id,
     });
     await salarySlip.save();
