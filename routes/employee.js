@@ -52,7 +52,7 @@ router.get('/', auth, async (req, res) => {
 
         return {
           ...emp._doc,
-          salary: latestSalary ? latestSalary.amount : 'N/A',
+          salary: latestSalary ? latestSalary.netSalary : 'N/A',
           paidLeaveBalance: calculatedPaidLeave,
           unpaidLeaveBalance: emp.unpaidLeaveBalance,
           isActive: emp.status === 'active'
@@ -68,7 +68,7 @@ router.get('/', auth, async (req, res) => {
 
 router.post('/', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
-  const { name, email, phone, position, department, bankAccount, salary, joiningDate } = req.body;
+  const { name, email, phone, position, department, bankAccount, bankName, salary, joiningDate } = req.body;
   try {
     let employee = await Employee.findOne({ email });
     if (employee) return res.status(400).json({ message: 'Employee already exists' });
@@ -197,6 +197,7 @@ router.put('/:id', auth, async (req, res) => {
     employee.position = position || employee.position;
     employee.department = department !== undefined ? department : employee.department;
     employee.bankAccount = bankAccount !== undefined ? bankAccount : employee.bankAccount;
+    employee.bankName = bankName !== undefined ? bankName : employee.bankName;
     if (joiningDate) employee.joiningDate = new Date(joiningDate);
     if (password) employee.password = await bcrypt.hash(password, 10);
 
@@ -340,7 +341,7 @@ router.get('/profile', auth, async (req, res) => {
 
     res.json({
       ...employee._doc,
-      salary: latestSalary ? latestSalary.amount : 'N/A',
+      salary: latestSalary ? latestSalary.netSalary : 'N/A',
       employeeId: employee.employeeId, // Ensure employeeId is included
       paidLeaveBalance: calculatedPaidLeave,
       unpaidLeaveBalance: employee.unpaidLeaveBalance,
@@ -382,7 +383,7 @@ router.put('/:id/enable', auth, async (req, res) => {
     let salary = 'N/A';
     try {
       const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
-      salary = latestSalary ? latestSalary.amount : 'N/A';
+      salary = latestSalary ? latestSalary.netSalary : 'N/A';
     } catch (salaryErr) {
       console.error('Error fetching salary:', salaryErr);
     }
@@ -646,7 +647,7 @@ router.put('/profile', auth, async (req, res) => {
       message: 'Profile updated successfully',
       data: {
         ...employee._doc,
-        salary: latestSalary ? latestSalary.amount : 'N/A',
+        salary: latestSalary ? latestSalary.netSalary : 'N/A',
         employeeId: employee.employeeId,
         paidLeaveBalance: calculatedPaidLeave,
         unpaidLeaveBalance: employee.unpaidLeaveBalance,

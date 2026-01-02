@@ -30,8 +30,9 @@ router.post('/', auth, async (req, res) => {
     const salarySlip = new SalarySlip({
       employee: employeeId,
       month,
-      amount: parseFloat(fixedAmount),
+      netSalary: parseFloat(fixedAmount),
       bankAccount: employee.bankAccount || '',
+      bankName: employee.bankName || '',
       department: employee.department || '',
       generatedBy: req.user.id,
     });
