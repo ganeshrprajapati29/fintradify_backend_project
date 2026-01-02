@@ -94,11 +94,51 @@ router.post('/', auth, async (req, res) => {
     // Create salary slip if salary is provided
     if (salary && !isNaN(salary) && salary > 0) {
       const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+      const currentYear = new Date().getFullYear();
+      const monthlySalary = parseFloat(salary);
+      const basicPay = Math.round(monthlySalary * 0.35); // 35% of total salary
+      const hra = Math.round(basicPay * 0.4); // 40% of basic pay
+      const conveyanceAllowance = Math.min(19200, Math.round(monthlySalary * 0.1)); // Conveyance allowance (max 19200/year)
+      const medicalAllowance = Math.round(monthlySalary * 0.05); // 5% medical allowance
+      const lta = Math.round(monthlySalary * 0.1); // 10% LTA
+      const otherAllowances = monthlySalary - (basicPay + hra + conveyanceAllowance + medicalAllowance + lta);
+
+      // Calculate deductions
+      const pf = Math.round(basicPay * 0.12); // 12% PF
+      const professionalTax = 235; // Fixed professional tax
+      const gratuity = Math.round((basicPay * 15 * 30) / (30 * 26)); // Gratuity calculation
+      const otherDeductions = 0;
+
+      // Calculate totals
+      const totalEarnings = basicPay + hra + conveyanceAllowance + medicalAllowance + lta + otherAllowances;
+      const totalDeductions = pf + professionalTax + gratuity + otherDeductions;
+      const netSalary = totalEarnings - totalDeductions;
+
       const salarySlip = new SalarySlip({
         employee: employee._id,
         month: currentMonth,
-        amount: parseFloat(salary),
-        hoursWorked: 160,
+        year: currentYear,
+        amount: monthlySalary,
+        basicPay,
+        hra,
+        conveyanceAllowance,
+        medicalAllowance,
+        lta,
+        otherAllowances,
+        pf,
+        professionalTax,
+        gratuity,
+        otherDeductions,
+        totalEarnings,
+        totalDeductions,
+        netSalary,
+        workingDays: 30,
+        presentDays: 30,
+        paymentMode: 'Bank Transfer',
+        bankAccount: employee.employeeId,
+        financialYear: getFinancialYear(),
+        date: new Date(),
+        generatedBy: null,
       });
       await salarySlip.save();
     }
@@ -164,20 +204,99 @@ router.put('/:id', auth, async (req, res) => {
 
     if (salary !== undefined && !isNaN(salary) && salary >= 0) {
       const currentMonth = new Date().toISOString().slice(0, 7);
+      const currentYear = new Date().getFullYear();
       let salarySlip = await SalarySlip.findOne({
         employee: employee._id,
         month: currentMonth,
       });
+
       if (salarySlip) {
-        salarySlip.amount = parseFloat(salary);
+        // Update existing salary slip with new amount and recalculate components
+        const monthlySalary = parseFloat(salary);
+        const basicPay = Math.round(monthlySalary * 0.35); // 35% of total salary
+        const hra = Math.round(basicPay * 0.4); // 40% of basic pay
+        const conveyanceAllowance = Math.min(19200, Math.round(monthlySalary * 0.1)); // Conveyance allowance (max 19200/year)
+        const medicalAllowance = Math.round(monthlySalary * 0.05); // 5% medical allowance
+        const lta = Math.round(monthlySalary * 0.1); // 10% LTA
+        const otherAllowances = monthlySalary - (basicPay + hra + conveyanceAllowance + medicalAllowance + lta);
+
+        // Calculate deductions
+        const pf = Math.round(basicPay * 0.12); // 12% PF
+        const professionalTax = 235; // Fixed professional tax
+        const gratuity = Math.round((basicPay * 15 * 30) / (30 * 26)); // Gratuity calculation
+        const otherDeductions = 0;
+
+        // Calculate totals
+        const totalEarnings = basicPay + hra + conveyanceAllowance + medicalAllowance + lta + otherAllowances;
+        const totalDeductions = pf + professionalTax + gratuity + otherDeductions;
+        const netSalary = totalEarnings - totalDeductions;
+
+        salarySlip.amount = monthlySalary;
+        salarySlip.basicPay = basicPay;
+        salarySlip.hra = hra;
+        salarySlip.conveyanceAllowance = conveyanceAllowance;
+        salarySlip.medicalAllowance = medicalAllowance;
+        salarySlip.lta = lta;
+        salarySlip.otherAllowances = otherAllowances;
+        salarySlip.pf = pf;
+        salarySlip.professionalTax = professionalTax;
+        salarySlip.gratuity = gratuity;
+        salarySlip.otherDeductions = otherDeductions;
+        salarySlip.totalEarnings = totalEarnings;
+        salarySlip.totalDeductions = totalDeductions;
+        salarySlip.netSalary = netSalary;
         salarySlip.hoursWorked = 160;
+        salarySlip.workingDays = 30;
+        salarySlip.presentDays = 30;
+        salarySlip.year = currentYear;
+        salarySlip.financialYear = getFinancialYear();
         await salarySlip.save();
       } else if (salary > 0) {
+        // Create new salary slip with all required fields
+        const monthlySalary = parseFloat(salary);
+        const basicPay = Math.round(monthlySalary * 0.35); // 35% of total salary
+        const hra = Math.round(basicPay * 0.4); // 40% of basic pay
+        const conveyanceAllowance = Math.min(19200, Math.round(monthlySalary * 0.1)); // Conveyance allowance (max 19200/year)
+        const medicalAllowance = Math.round(monthlySalary * 0.05); // 5% medical allowance
+        const lta = Math.round(monthlySalary * 0.1); // 10% LTA
+        const otherAllowances = monthlySalary - (basicPay + hra + conveyanceAllowance + medicalAllowance + lta);
+
+        // Calculate deductions
+        const pf = Math.round(basicPay * 0.12); // 12% PF
+        const professionalTax = 235; // Fixed professional tax
+        const gratuity = Math.round((basicPay * 15 * 30) / (30 * 26)); // Gratuity calculation
+        const otherDeductions = 0;
+
+        // Calculate totals
+        const totalEarnings = basicPay + hra + conveyanceAllowance + medicalAllowance + lta + otherAllowances;
+        const totalDeductions = pf + professionalTax + gratuity + otherDeductions;
+        const netSalary = totalEarnings - totalDeductions;
+
         salarySlip = new SalarySlip({
           employee: employee._id,
           month: currentMonth,
-          amount: parseFloat(salary),
-          hoursWorked: 160,
+          year: currentYear,
+          amount: monthlySalary,
+          basicPay,
+          hra,
+          conveyanceAllowance,
+          medicalAllowance,
+          lta,
+          otherAllowances,
+          pf,
+          professionalTax,
+          gratuity,
+          otherDeductions,
+          totalEarnings,
+          totalDeductions,
+          netSalary,
+          workingDays: 30,
+          presentDays: 30,
+          paymentMode: 'Bank Transfer',
+          bankAccount: employee.employeeId,
+          financialYear: getFinancialYear(),
+          date: new Date(),
+          generatedBy: null,
         });
         await salarySlip.save();
       }
