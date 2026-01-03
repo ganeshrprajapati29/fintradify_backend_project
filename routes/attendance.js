@@ -207,7 +207,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 /**
- * Admin: Download Attendance CSV
+ * Admin: Download Attendance CSV - CORRECTED VERSION
  */
 router.get('/download', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
@@ -225,9 +225,14 @@ router.get('/download', auth, async (req, res) => {
       return res.status(404).json({ message: 'No attendance records found for the selected date range' });
     }
 
+    // Get all unique employee IDs from attendances
+    const employeeIds = [...new Set(attendances.map(att => att.employee?._id?.toString()).filter(Boolean))];
+
+    // Fetch salary slips for all employees in the date range
     const salarySlips = await SalarySlip.find({
+      employee: { $in: employeeIds },
       month: { $gte: startDate.slice(0, 7), $lte: endDate.slice(0, 7) },
-    }).populate('employee', '_id');
+    }).lean();
 
     const csvStringifier = createObjectCsvStringifier({
       header: [
@@ -248,14 +253,18 @@ router.get('/download', auth, async (req, res) => {
         : '0.00';
       const dateMonth = new Date(att.date).toISOString().slice(0, 7);
 
+      // Find salary slip for this employee and month
       const salarySlip = salarySlips.find(slip =>
-        slip?.employee?._id?.toString() === att.employee?._id?.toString() &&
+        slip.employee && slip.employee.toString() === att.employee?._id?.toString() &&
         slip.month === dateMonth
       );
 
-      const hourlyRate = salarySlip && salarySlip.hoursWorked > 0
-        ? (salarySlip.amount / salarySlip.hoursWorked).toFixed(2)
-        : '100.00';
+      // Use salary slip data if available, otherwise use default
+      let hourlyRate = '100.00';
+      if (salarySlip && salarySlip.hoursWorked > 0) {
+        hourlyRate = (salarySlip.amount / salarySlip.hoursWorked).toFixed(2);
+      }
+
       const totalSalary = (parseFloat(hoursWorked) * parseFloat(hourlyRate)).toFixed(2);
 
       return {
@@ -350,7 +359,7 @@ router.get('/download/my-attendance', auth, async (req, res) => {
     const salarySlips = await SalarySlip.find({
       employee: req.user.id,
       month: { $gte: startDate.slice(0, 7), $lte: endDate.slice(0, 7) },
-    });
+    }).lean();
 
     const csvStringifier = createObjectCsvStringifier({
       header: [
@@ -373,9 +382,11 @@ router.get('/download/my-attendance', auth, async (req, res) => {
 
       const salarySlip = salarySlips.find(slip => slip.month === dateMonth);
 
-      const hourlyRate = salarySlip && salarySlip.hoursWorked > 0
-        ? (salarySlip.amount / salarySlip.hoursWorked).toFixed(2)
-        : '100.00';
+      let hourlyRate = '100.00';
+      if (salarySlip && salarySlip.hoursWorked > 0) {
+        hourlyRate = (salarySlip.amount / salarySlip.hoursWorked).toFixed(2);
+      }
+      
       const totalSalary = (parseFloat(hoursWorked) * parseFloat(hourlyRate)).toFixed(2);
 
       return {
