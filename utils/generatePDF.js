@@ -156,11 +156,20 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
       doc.fillColor('#64748b')
          .font('Helvetica')
          .text('Bank Name:', rightColumnX, yPos + 42);
-      
+
       const bankName = employee.bankName || employee.bank_name || 'N/A';
-      doc.fillColor('#1e293b')
-         .font('Helvetica-Bold')
-         .text(bankName, rightColumnX + labelWidth, yPos + 42);
+      const bankNameWidth = doc.widthOfString(bankName, { font: 'Helvetica-Bold', fontSize: 9 });
+      if (bankNameWidth > 100) {
+        const truncatedBankName = bankName.substring(0, 15) + '...';
+        doc.fillColor('#1e293b')
+           .font('Helvetica-Bold')
+           .fontSize(8)
+           .text(truncatedBankName, rightColumnX + labelWidth, yPos + 42);
+      } else {
+        doc.fillColor('#1e293b')
+           .font('Helvetica-Bold')
+           .text(bankName, rightColumnX + labelWidth, yPos + 42);
+      }
 
       yPos += 10;
 
