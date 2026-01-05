@@ -8,11 +8,17 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
       const doc = new PDFDocument({
         size: 'A4',
         margin: 20,
-        bufferPages: true
+        bufferPages: true,
+        info: {
+          Title: `Salary Slip - ${employee.name || 'Employee'}`,
+          Author: 'Fintradify HR System',
+          Subject: 'Salary Slip',
+          Keywords: 'salary, payslip, payroll',
+          CreationDate: new Date()
+        }
       });
 
       const buffers = [];
-
       doc.on('data', buffers.push.bind(buffers));
       doc.on('end', () => {
         const pdfBuffer = Buffer.concat(buffers);
@@ -37,29 +43,29 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
 
       // Company Info
       doc.fillColor('#ffffff')
-         .fontSize(22)
+         .fontSize(16)
          .font('Helvetica-Bold')
-         .text('FINTRADIFY', 80, 18);
+         .text('FINTRADIFY', 80, 20);
 
-      doc.fontSize(9)
+      doc.fontSize(8)
          .font('Helvetica')
-         .text('Office No. 105, C6, Noida Sector 7, Uttar Pradesh - 201301', 80, 40);
+         .text('Office No. 105, C6, Noida Sector 7, Uttar Pradesh - 201301', 80, 38);
 
       doc.text('Phone: +91 78360 09907 | Email: hr@fintradify.com', 80, 50);
 
       // Salary Slip Title
       doc.fillColor('#ffffff')
-         .fontSize(20)
+         .fontSize(18)
          .font('Helvetica-Bold')
-         .text('SALARY SLIP', 300, 30, { align: 'right', width: 250 });
-
-      doc.fontSize(10)
-         .text(`Month: ${salarySlip.month || 'N/A'}`, 300, 52, { align: 'right', width: 250 });
+         .text('SALARY SLIP', doc.page.width - 220, 20, { align: 'right', width: 200 });
 
       doc.fontSize(9)
-         .text(`Slip ID: ${salarySlip._id || 'SLIP-' + Date.now()}`, 300, 65, { align: 'right', width: 250 });
+         .text(`Month: ${salarySlip.month || 'N/A'}`, doc.page.width - 220, 40, { align: 'right', width: 200 });
 
-      doc.text(`Date: ${salarySlip.date ? new Date(salarySlip.date).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')}`, 300, 77, { align: 'right', width: 250 });
+      doc.text(`Slip ID: ${salarySlip._id || 'SLIP-' + Date.now().toString().slice(-8)}`, doc.page.width - 220, 52, { align: 'right', width: 200 });
+
+      const slipDate = salarySlip.date ? new Date(salarySlip.date) : new Date();
+      doc.text(`Date: ${slipDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`, doc.page.width - 220, 64, { align: 'right', width: 200 });
 
       // ==================== EMPLOYEE DETAILS SECTION ====================
       let yPos = 115;
@@ -69,103 +75,165 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
          .stroke('#cbd5e1');
 
       doc.fillColor('#1e293b')
-         .fontSize(12)
+         .fontSize(11)
          .font('Helvetica-Bold')
          .text('Employee Details', 30, yPos + 8);
 
-      // Employee Info in grid
-      const empDetailsLeft = [
-        { label: 'Emp ID:', value: employee.employeeId || 'N/A' },
-        { label: 'Name:', value: employee.name || 'N/A' }
-      ];
-
-      const empDetailsMiddle = [
-        { label: 'Department:', value: employee.department || 'N/A' },
-        { label: 'Position:', value: employee.position || 'N/A' }
-      ];
-
-      const empDetailsRight = [
-        { label: 'Joining Date:', value: employee.joiningDate ? new Date(employee.joiningDate).toLocaleDateString('en-IN') : 'N/A' },
-        { label: 'Bank Name:', value: employee.bankName || employee.bank_name || '' },
-        { label: 'Bank A/C:', value: salarySlip.bankAccount ? salarySlip.bankAccount.slice(-4).padStart(salarySlip.bankAccount.length, '*') : 'N/A' }
-      ];
-
-      empDetailsLeft.forEach((detail, index) => {
-        const rowY = yPos + 28 + (index * 14);
-        doc.fillColor('#64748b')
-           .fontSize(9)
-           .font('Helvetica')
-           .text(detail.label, 30, rowY);
+      // Employee Info in grid layout
+      const leftColumnX = 30;
+      const middleColumnX = 240;
+      const rightColumnX = 430;
+      const labelWidth = 70;
+      
+      // Left Column
+      doc.fillColor('#64748b')
+         .fontSize(9)
+         .font('Helvetica')
+         .text('Emp ID:', leftColumnX, yPos + 28);
+      
+      doc.fillColor('#1e293b')
+         .font('Helvetica-Bold')
+         .text(employee.employeeId || 'N/A', leftColumnX + labelWidth, yPos + 28);
+      
+      doc.fillColor('#64748b')
+         .font('Helvetica')
+         .text('Name:', leftColumnX, yPos + 42);
+      
+      const employeeName = employee.name || 'N/A';
+      const nameWidth = doc.widthOfString(employeeName, { font: 'Helvetica-Bold', fontSize: 9 });
+      if (nameWidth > 150) {
+        doc.fillColor('#1e293b')
+           .font('Helvetica-Bold')
+           .fontSize(8)
+           .text(employeeName, leftColumnX + labelWidth, yPos + 42, { width: 150 });
+      } else {
         doc.fillColor('#1e293b')
            .font('Helvetica-Bold')
            .fontSize(9)
-           .text(detail.value, 80, rowY);
-      });
+           .text(employeeName, leftColumnX + labelWidth, yPos + 42);
+      }
 
-      empDetailsMiddle.forEach((detail, index) => {
-        const rowY = yPos + 28 + (index * 14);
-        doc.fillColor('#64748b')
-           .fontSize(9)
-           .font('Helvetica')
-           .text(detail.label, 240, rowY);
+      // Middle Column
+      doc.fillColor('#64748b')
+         .fontSize(9)
+         .font('Helvetica')
+         .text('Department:', middleColumnX, yPos + 28);
+      
+      doc.fillColor('#1e293b')
+         .font('Helvetica-Bold')
+         .text(employee.department || 'N/A', middleColumnX + labelWidth, yPos + 28);
+      
+      doc.fillColor('#64748b')
+         .font('Helvetica')
+         .text('Position:', middleColumnX, yPos + 42);
+      
+      const position = employee.position || 'N/A';
+      const positionWidth = doc.widthOfString(position, { font: 'Helvetica-Bold', fontSize: 9 });
+      if (positionWidth > 150) {
+        doc.fillColor('#1e293b')
+           .font('Helvetica-Bold')
+           .fontSize(8)
+           .text(position, middleColumnX + labelWidth, yPos + 42, { width: 150 });
+      } else {
         doc.fillColor('#1e293b')
            .font('Helvetica-Bold')
            .fontSize(9)
-           .text(detail.value, 310, rowY);
-      });
+           .text(position, middleColumnX + labelWidth, yPos + 42);
+      }
 
-      empDetailsRight.forEach((detail, index) => {
-        const rowY = yPos + 28 + (index * 14);
-        doc.fillColor('#64748b')
-           .fontSize(9)
-           .font('Helvetica')
-           .text(detail.label, 430, rowY);
-        doc.fillColor('#1e293b')
-           .font('Helvetica-Bold')
-           .fontSize(9)
-           .text(detail.value, 500, rowY);
-      });
+      // Right Column
+      doc.fillColor('#64748b')
+         .fontSize(9)
+         .font('Helvetica')
+         .text('Joining Date:', rightColumnX, yPos + 28);
+      
+      const joiningDate = employee.joiningDate ? new Date(employee.joiningDate).toLocaleDateString('en-IN') : 'N/A';
+      doc.fillColor('#1e293b')
+         .font('Helvetica-Bold')
+         .text(joiningDate, rightColumnX + labelWidth, yPos + 28);
+      
+      // Bank Account with masking
+      const bankAccount = salarySlip.bankAccount || employee.bankAccount || '';
+      const maskedAccount = bankAccount ? '••••' + bankAccount.slice(-4) : 'N/A';
+      
+      doc.fillColor('#64748b')
+         .font('Helvetica')
+         .text('Bank A/C:', rightColumnX, yPos + 42);
+      
+      doc.fillColor('#1e293b')
+         .font('Helvetica-Bold')
+         .text(maskedAccount, rightColumnX + labelWidth, yPos + 42);
 
       // ==================== SALARY BREAKDOWN ====================
-      yPos += 80;
+      yPos += 75;
+
+      // Calculate column widths
+      const columnWidth = (doc.page.width - 40) / 2;
+      const leftBoxX = 20;
+      const rightBoxX = leftBoxX + columnWidth + 5;
 
       // Earnings Header
-      doc.rect(20, yPos, (doc.page.width - 40) / 2 - 5, 22)
+      doc.rect(leftBoxX, yPos, columnWidth - 5, 22)
          .fill('#1e3a8a')
          .stroke('#1e3a8a');
 
       doc.fillColor('#ffffff')
          .fontSize(11)
          .font('Helvetica-Bold')
-         .text('EARNINGS', 28, yPos + 6);
-
-      doc.text('Amount', (doc.page.width / 2) - 50, yPos + 6, { align: 'right' });
+         .text('EARNINGS', leftBoxX + 8, yPos + 6);
 
       // Deductions Header
-      doc.rect((doc.page.width / 2) + 5, yPos, (doc.page.width - 40) / 2 - 5, 22)
+      doc.rect(rightBoxX, yPos, columnWidth - 5, 22)
          .fill('#dc2626')
          .stroke('#dc2626');
 
       doc.fillColor('#ffffff')
          .fontSize(11)
          .font('Helvetica-Bold')
-         .text('DEDUCTIONS', (doc.page.width / 2) + 13, yPos + 6);
-
-      doc.text('Amount', doc.page.width - 30, yPos + 6, { align: 'right' });
+         .text('DEDUCTIONS', rightBoxX + 8, yPos + 6);
 
       yPos += 22;
 
-      // Earnings Data
-      const earnings = [
-        { description: 'Basic Pay', amount: salarySlip.basicPay || 0 }
+      // Prepare earnings and deductions data
+      const earnings = [];
+      const deductions = [];
+      
+      // Add Basic Pay to earnings
+      if (salarySlip.basicPay || salarySlip.basicPay === 0) {
+        earnings.push({ description: 'Basic Pay', amount: salarySlip.basicPay });
+      }
+      
+      // Add other earnings if they exist
+      const earningComponents = ['hra', 'specialAllowance', 'conveyance', 'medicalAllowance', 'bonus', 'overtime'];
+      earningComponents.forEach(component => {
+        if (salarySlip[component] && salarySlip[component] > 0) {
+          const label = component.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+          earnings.push({ description: label, amount: salarySlip[component] });
+        }
+      });
+
+      // Add standard deductions
+      const deductionComponents = [
+        { key: 'pf', label: 'Provident Fund' },
+        { key: 'professionalTax', label: 'Professional Tax' },
+        { key: 'tds', label: 'Income Tax' },
+        { key: 'gratuity', label: 'Gratuity' },
+        { key: 'otherDeductions', label: 'Other Deductions' }
       ];
 
-      const deductions = [
-        { description: 'Provident Fund', amount: salarySlip.pf || 0 },
-        { description: 'Professional Tax', amount: salarySlip.professionalTax || 0 },
-        { description: 'Gratuity', amount: salarySlip.gratuity || 0 },
-        { description: 'Other Deductions', amount: salarySlip.otherDeductions || 0 }
-      ];
+      deductionComponents.forEach(item => {
+        if (salarySlip[item.key] && salarySlip[item.key] > 0) {
+          deductions.push({ description: item.label, amount: salarySlip[item.key] });
+        }
+      });
+
+      // If no earnings or deductions, add placeholder
+      if (earnings.length === 0) {
+        earnings.push({ description: 'Basic Pay', amount: 0 });
+      }
+      if (deductions.length === 0) {
+        deductions.push({ description: 'No Deductions', amount: 0 });
+      }
 
       const maxRows = Math.max(earnings.length, deductions.length);
 
@@ -174,85 +242,138 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
         const rowColor = i % 2 === 0 ? '#ffffff' : '#f8fafc';
 
         // Earnings Row
-        doc.rect(20, yPos, (doc.page.width - 40) / 2 - 5, rowHeight)
+        doc.rect(leftBoxX, yPos, columnWidth - 5, rowHeight)
            .fill(rowColor)
            .stroke('#e2e8f0');
 
         if (earnings[i]) {
+          // Truncate description if too long
+          let description = earnings[i].description;
+          let fontSize = 9;
+          
+          if (doc.widthOfString(description, { fontSize: fontSize }) > 150) {
+            while (description.length > 20 && fontSize > 7) {
+              description = description.substring(0, 20) + '...';
+              fontSize = 8;
+            }
+          }
+          
           doc.fillColor('#1e293b')
-             .fontSize(9)
+             .fontSize(fontSize)
              .font('Helvetica')
-             .text(earnings[i].description, 28, yPos + 4);
+             .text(description, leftBoxX + 8, yPos + 4);
 
           doc.font('Helvetica-Bold')
              .fillColor('#1e3a8a')
              .fontSize(9)
-             .text(`INR ${earnings[i].amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 20, yPos + 4, { align: 'right', width: (doc.page.width / 2) - 50 });
+             .text(formatCurrency(earnings[i].amount), leftBoxX, yPos + 4, { 
+               align: 'right', 
+               width: columnWidth - 13 
+             });
         }
 
         // Deductions Row
-        doc.rect((doc.page.width / 2) + 5, yPos, (doc.page.width - 40) / 2 - 5, rowHeight)
+        doc.rect(rightBoxX, yPos, columnWidth - 5, rowHeight)
            .fill(rowColor)
            .stroke('#e2e8f0');
 
         if (deductions[i]) {
+          // Truncate description if too long
+          let description = deductions[i].description;
+          let fontSize = 9;
+          
+          if (doc.widthOfString(description, { fontSize: fontSize }) > 150) {
+            while (description.length > 20 && fontSize > 7) {
+              description = description.substring(0, 20) + '...';
+              fontSize = 8;
+            }
+          }
+          
           doc.fillColor('#1e293b')
-             .fontSize(9)
+             .fontSize(fontSize)
              .font('Helvetica')
-             .text(deductions[i].description, (doc.page.width / 2) + 13, yPos + 4);
+             .text(description, rightBoxX + 8, yPos + 4);
 
           doc.font('Helvetica-Bold')
              .fillColor('#dc2626')
              .fontSize(9)
-             .text(`INR ${deductions[i].amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, (doc.page.width / 2) + 5, yPos + 4, { align: 'right', width: (doc.page.width / 2) - 50 });
+             .text(formatCurrency(deductions[i].amount), rightBoxX, yPos + 4, { 
+               align: 'right', 
+               width: columnWidth - 13 
+             });
         }
 
         yPos += rowHeight;
       }
 
       // Total Earnings
-      doc.rect(20, yPos, (doc.page.width - 40) / 2 - 5, 20)
+      doc.rect(leftBoxX, yPos, columnWidth - 5, 20)
          .fill('#dbeafe')
          .stroke('#93c5fd');
 
       doc.fillColor('#1e3a8a')
          .fontSize(10)
          .font('Helvetica-Bold')
-         .text('TOTAL EARNINGS', 28, yPos + 4);
+         .text('TOTAL EARNINGS', leftBoxX + 8, yPos + 4);
 
-      doc.text(`INR ${(salarySlip.totalEarnings || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 20, yPos + 4, { align: 'right', width: (doc.page.width / 2) - 50 });
+      const totalEarnings = salarySlip.totalEarnings || 
+                          earnings.reduce((sum, item) => sum + (item.amount || 0), 0);
+      
+      doc.text(formatCurrency(totalEarnings), leftBoxX, yPos + 4, { 
+        align: 'right', 
+        width: columnWidth - 13 
+      });
 
       // Total Deductions
-      doc.rect((doc.page.width / 2) + 5, yPos, (doc.page.width - 40) / 2 - 5, 20)
+      doc.rect(rightBoxX, yPos, columnWidth - 5, 20)
          .fill('#fee2e2')
          .stroke('#fca5a5');
 
       doc.fillColor('#dc2626')
          .fontSize(10)
          .font('Helvetica-Bold')
-         .text('TOTAL DEDUCTIONS', (doc.page.width / 2) + 13, yPos + 4);
+         .text('TOTAL DEDUCTIONS', rightBoxX + 8, yPos + 4);
 
-      doc.text(`INR ${(salarySlip.totalDeductions || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, (doc.page.width / 2) + 5, yPos + 4, { align: 'right', width: (doc.page.width / 2) - 50 });
+      const totalDeductions = salarySlip.totalDeductions || 
+                             deductions.reduce((sum, item) => sum + (item.amount || 0), 0);
+      
+      doc.text(formatCurrency(totalDeductions), rightBoxX, yPos + 4, { 
+        align: 'right', 
+        width: columnWidth - 13 
+      });
 
       yPos += 30;
 
       // ==================== NET SALARY ====================
+      const netSalary = salarySlip.netSalary || totalEarnings - totalDeductions;
+      
       doc.roundedRect(20, yPos, doc.page.width - 40, 50, 5)
          .fill('#10b981')
          .stroke('#10b981');
 
       doc.fillColor('#ffffff')
          .fontSize(11)
-         .font('Helvetica')
+         .font('Helvetica-Bold')
          .text('NET SALARY PAYABLE', 28, yPos + 8);
 
-      doc.fontSize(18)
-         .font('Helvetica-Bold')
-         .text(`INR ${(salarySlip.netSalary || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 28, yPos + 22);
+      doc.fontSize(16)
+         .text(formatCurrency(netSalary, true), 28, yPos + 22);
 
-      doc.fontSize(9)
-         .font('Helvetica')
-         .text(`In Words: ${numberToWords(salarySlip.netSalary || 0)} INR Only`, 28, yPos + 38);
+      // Convert amount to words
+      const amountInWords = numberToWords(netSalary);
+      const wordsText = `In Words: ${amountInWords} Only`;
+      
+      // Check if text fits in one line
+      const wordsWidth = doc.widthOfString(wordsText, { fontSize: 9 });
+      if (wordsWidth > (doc.page.width - 80)) {
+        doc.fontSize(8)
+           .font('Helvetica')
+           .text(wordsText, 28, yPos + 38, { width: doc.page.width - 56 });
+      } else {
+        doc.fontSize(9)
+           .font('Helvetica')
+           .text(wordsText, 28, yPos + 38);
+      }
 
       yPos += 65;
 
@@ -267,73 +388,114 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
       const payDetails = [
         `Payroll Number: ${salarySlip.payrollNumber || 'N/A'}`,
         `Pay Type: ${salarySlip.payType || 'Monthly'}`,
-        `Period: ${salarySlip.period || 'N/A'}`,
-        `Pay Date: ${salarySlip.payDate ? new Date(salarySlip.payDate).toLocaleDateString('en-IN') : 'N/A'}`,
+        `Period: ${salarySlip.period || getCurrentMonthYear()}`,
+        `Pay Date: ${salarySlip.payDate ? new Date(salarySlip.payDate).toLocaleDateString('en-IN') : slipDate.toLocaleDateString('en-IN')}`,
         `Mode: ${salarySlip.paymentMode || 'Bank Transfer'}`,
         `FY: ${salarySlip.financialYear || getFinancialYear()}`
       ];
 
+      // Arrange payment details in two rows
       doc.fillColor('#475569')
          .fontSize(9)
          .font('Helvetica');
 
-      payDetails.forEach((detail, index) => {
+      // First row (first 3 items)
+      payDetails.slice(0, 3).forEach((detail, index) => {
+        doc.text(detail, 20 + (index * 180), yPos);
+      });
+
+      // Second row (next 3 items)
+      yPos += 14;
+      payDetails.slice(3, 6).forEach((detail, index) => {
         doc.text(detail, 20 + (index * 180), yPos);
       });
 
       // ==================== FOOTER ====================
-      yPos += 20;
+      yPos += 24;
 
-      doc.rect(20, yPos, doc.page.width - 40, 35)
+      // Disclaimer box
+      const disclaimerHeight = 35;
+      doc.rect(20, yPos, doc.page.width - 40, disclaimerHeight)
          .fill('#fef3c7')
          .stroke('#fbbf24');
 
       doc.fillColor('#92400e')
          .fontSize(8)
          .font('Helvetica-Bold')
-         .text('Disclaimer:', 28, yPos + 6);
+         .text('Disclaimer:', 28, yPos + 8);
 
       doc.fontSize(8)
          .font('Helvetica')
-         .text('1. Computer generated document, no signature required. 2. Report discrepancies within 7 days.', 28, yPos + 18, { width: doc.page.width - 56 });
+         .text('1. This is a computer generated document and does not require a signature.', 28, yPos + 18, { width: doc.page.width - 56 });
 
-      yPos += 50;
+      doc.text('2. Please report any discrepancies within 7 days of receiving this slip.', 28, yPos + 26, { width: doc.page.width - 56 });
+
+      yPos += disclaimerHeight + 10;
 
       // Signature Area
-      doc.rect(20, yPos, (doc.page.width - 50) / 2, 35)
+      const signatureWidth = (doc.page.width - 60) / 2;
+      
+      // Manager Signature
+      doc.rect(30, yPos, signatureWidth, 40)
          .stroke('#cbd5e1');
 
-      // Manager Signature Image
-      const signaturePath = path.join(__dirname, '../assets/manager.jpeg');
-      if (fs.existsSync(signaturePath)) {
-        doc.image(signaturePath, 30, yPos + 5, { width: 50, height: 25 });
+      const managerSignaturePath = path.join(__dirname, '../assets/manager.jpeg');
+      if (fs.existsSync(managerSignaturePath)) {
+        try {
+          doc.image(managerSignaturePath, 40, yPos + 5, { width: 50, height: 25 });
+        } catch (err) {
+          console.warn('Could not load manager signature:', err.message);
+        }
+      } else {
+        doc.fillColor('#cbd5e1')
+           .fontSize(24)
+           .text('✍️', 55, yPos + 5);
       }
 
       doc.fillColor('#64748b')
          .fontSize(9)
-         .font('Helvetica')
-         .text('Manager Signature', 30, yPos + 15, { align: 'center', width: (doc.page.width - 70) / 2 });
+         .font('Helvetica-Bold')
+         .text('Manager', 30, yPos + 32, { align: 'center', width: signatureWidth });
 
-      doc.rect((doc.page.width - 50) / 2 + 30, yPos, (doc.page.width - 50) / 2, 35)
+      doc.fontSize(8)
+         .font('Helvetica')
+         .text('Authorized Signatory', 30, yPos + 42, { align: 'center', width: signatureWidth });
+
+      // Co-Founder Signature
+      const coFounderX = 30 + signatureWidth + 10;
+      doc.rect(coFounderX, yPos, signatureWidth, 40)
          .stroke('#cbd5e1');
 
-      // Co-Founder Signature Image
       const coFounderSignaturePath = path.join(__dirname, '../assets/co-founder.jpeg');
       if (fs.existsSync(coFounderSignaturePath)) {
-        doc.image(coFounderSignaturePath, (doc.page.width - 50) / 2 + 40, yPos + 5, { width: 50, height: 25 });
+        try {
+          doc.image(coFounderSignaturePath, coFounderX + 10, yPos + 5, { width: 50, height: 25 });
+        } catch (err) {
+          console.warn('Could not load co-founder signature:', err.message);
+        }
+      } else {
+        doc.fillColor('#cbd5e1')
+           .fontSize(24)
+           .text('✍️', coFounderX + 25, yPos + 5);
       }
 
       doc.fillColor('#64748b')
          .fontSize(9)
+         .font('Helvetica-Bold')
+         .text('Co-Founder', coFounderX, yPos + 32, { align: 'center', width: signatureWidth });
+
+      doc.fontSize(8)
          .font('Helvetica')
-         .text('Co-Founder Signature', (doc.page.width - 50) / 2 + 40, yPos + 15, { align: 'center', width: (doc.page.width - 70) / 2 });
+         .text('Authorized Signatory', coFounderX, yPos + 42, { align: 'center', width: signatureWidth });
 
       // Bottom Footer
+      const footerY = doc.page.height - 25;
       doc.fillColor('#94a3b8')
          .fontSize(8)
-         .text('© 2024 Fintradify HR Management System. All rights reserved.', 0, doc.page.height - 18, { align: 'center' });
+         .font('Helvetica')
+         .text('© 2024 Fintradify HR Management System. All rights reserved.', 0, footerY, { align: 'center' });
 
-      doc.text(`Generated: ${new Date().toLocaleDateString('en-IN')} | Page 1`, 0, doc.page.height - 10, { align: 'center' });
+      doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} at ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} | Page 1`, 0, footerY + 10, { align: 'center' });
 
       doc.end();
 
@@ -344,6 +506,32 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
   });
 };
 
+// Helper function to format currency
+function formatCurrency(amount, large = false) {
+  if (amount === undefined || amount === null) amount = 0;
+  const formatted = `₹ ${parseFloat(amount).toLocaleString('en-IN', { 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 2 
+  })}`;
+  
+  return large ? formatted : formatted;
+}
+
+// Helper function to get current month and year
+function getCurrentMonthYear() {
+  const now = new Date();
+  return now.toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+}
+
+// Helper function to get financial year
+function getFinancialYear() {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const nextYear = currentYear + 1;
+  return `${currentYear}-${nextYear.toString().slice(-2)}`;
+}
+
+// Number to words conversion (improved)
 function numberToWords(num) {
   if (num === 0) return 'Zero';
   
@@ -378,42 +566,40 @@ function numberToWords(num) {
   let number = Math.floor(num);
   const paise = Math.round((num - number) * 100);
   
+  // Handle Crores
   if (number >= 10000000) {
     const crore = Math.floor(number / 10000000);
     result += convertHundreds(crore) + ' Crore ';
     number %= 10000000;
   }
   
+  // Handle Lakhs
   if (number >= 100000) {
     const lakh = Math.floor(number / 100000);
     result += convertHundreds(lakh) + ' Lakh ';
     number %= 100000;
   }
   
+  // Handle Thousands
   if (number >= 1000) {
     const thousand = Math.floor(number / 1000);
     result += convertHundreds(thousand) + ' Thousand ';
     number %= 1000;
   }
   
+  // Handle Hundreds
   if (number > 0) {
     result += convertHundreds(number);
   }
   
   result = result.trim() || 'Zero';
   
+  // Handle Paise
   if (paise > 0) {
     result += ` and ${convertHundreds(paise)} Paise`;
   }
   
   return result;
-}
-
-function getFinancialYear() {
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const nextYear = currentYear + 1;
-  return `${currentYear}-${nextYear.toString().slice(2)}`;
 }
 
 module.exports = { generateSalarySlipPDF };
