@@ -353,7 +353,7 @@ router.get('/profile', auth, async (req, res) => {
 
     res.json({
       ...employee._doc,
-      salary: latestSalary ? latestSalary.netSalary : 'N/A',
+      salary: latestSalary ? latestSalary.amount : 'N/A',
       employeeId: employee.employeeId, // Ensure employeeId is included
       paidLeaveBalance: calculatedPaidLeave,
       unpaidLeaveBalance: employee.unpaidLeaveBalance,
@@ -659,7 +659,7 @@ router.put('/profile', auth, async (req, res) => {
       message: 'Profile updated successfully',
       data: {
         ...employee._doc,
-        salary: latestSalary ? latestSalary.netSalary : 'N/A',
+        salary: latestSalary ? latestSalary.amount : 'N/A',
         employeeId: employee.employeeId,
         paidLeaveBalance: calculatedPaidLeave,
         unpaidLeaveBalance: employee.unpaidLeaveBalance,
