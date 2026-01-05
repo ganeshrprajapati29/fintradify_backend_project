@@ -86,6 +86,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
 
       const empDetailsRight = [
         { label: 'Joining Date:', value: employee.joiningDate ? new Date(employee.joiningDate).toLocaleDateString('en-IN') : 'N/A' },
+        { label: 'Bank Name:', value: salarySlip.bankName || 'N/A' },
         { label: 'Bank A/C:', value: salarySlip.bankAccount ? salarySlip.bankAccount.slice(-4).padStart(salarySlip.bankAccount.length, '*') : 'N/A' }
       ];
 
@@ -156,10 +157,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
 
       // Earnings Data
       const earnings = [
-        { description: 'Basic Pay', amount: salarySlip.basicPay || 0 },
-        { description: 'House Rent Allowance', amount: salarySlip.hra || 0 },
-        { description: 'Conveyance Allowance', amount: salarySlip.conveyanceAllowance || 0 },
-        { description: 'Medical Allowance', amount: salarySlip.medicalAllowance || 0 }
+        { description: 'Basic Pay', amount: salarySlip.basicPay || 0 }
       ];
 
       const deductions = [
@@ -302,15 +300,30 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
       doc.rect(20, yPos, (doc.page.width - 50) / 2, 35)
          .stroke('#cbd5e1');
 
+      // Manager Signature Image
+      const signaturePath = path.join(__dirname, '../assets/manager.jpeg');
+      if (fs.existsSync(signaturePath)) {
+        doc.image(signaturePath, 30, yPos + 5, { width: 50, height: 25 });
+      }
+
       doc.fillColor('#64748b')
          .fontSize(9)
          .font('Helvetica')
-         .text('Authorized By: HR', 30, yPos + 15, { align: 'center', width: (doc.page.width - 70) / 2 });
+         .text('Manager Signature', 30, yPos + 15, { align: 'center', width: (doc.page.width - 70) / 2 });
 
       doc.rect((doc.page.width - 50) / 2 + 30, yPos, (doc.page.width - 50) / 2, 35)
          .stroke('#cbd5e1');
 
-      doc.text('Employee Sign', (doc.page.width - 50) / 2 + 40, yPos + 15, { align: 'center', width: (doc.page.width - 70) / 2 });
+      // Co-Founder Signature Image
+      const coFounderSignaturePath = path.join(__dirname, '../assets/co-founder.jpeg');
+      if (fs.existsSync(coFounderSignaturePath)) {
+        doc.image(coFounderSignaturePath, (doc.page.width - 50) / 2 + 40, yPos + 5, { width: 50, height: 25 });
+      }
+
+      doc.fillColor('#64748b')
+         .fontSize(9)
+         .font('Helvetica')
+         .text('Co-Founder Signature', (doc.page.width - 50) / 2 + 40, yPos + 15, { align: 'center', width: (doc.page.width - 70) / 2 });
 
       // Bottom Footer
       doc.fillColor('#94a3b8')
