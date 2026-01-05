@@ -7,24 +7,30 @@ const auth = require('../middleware/auth');
 router.get('/', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
   try {
-    // Get today's date in YYYY-MM-DD format (local date)
-    const today = new Date().toLocaleDateString('en-CA');
+    // Get today's date range
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
 
     // Get all employees
     const employees = await Employee.find({ status: 'active' });
 
     // Get today's attendance
     const todaysAttendance = await Attendance.find({
-      date: today,
+      date: { $gte: todayStart, $lte: todayEnd },
       punchIn: { $ne: null }
     }).populate('employee', 'name employeeId team department');
 
     // Create a map of employee IDs to their attendance data
     const attendanceMap = {};
     todaysAttendance.forEach(att => {
+      const hoursWorked = att.punchOut && att.punchIn
+        ? ((new Date(att.punchOut) - new Date(att.punchIn)) / 1000 / 60 / 60).toFixed(2)
+        : 0;
       attendanceMap[att.employee._id.toString()] = {
         isActive: true,
-        hoursWorked: att.hoursWorked || 0
+        hoursWorked: parseFloat(hoursWorked)
       };
     });
 
