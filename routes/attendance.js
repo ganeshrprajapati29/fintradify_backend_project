@@ -5,7 +5,7 @@ const SalarySlip = require('../models/SalarySlip');
 const Notification = require('../models/Notification');
 const Settings = require('../models/Settings');
 const auth = require('../middleware/auth');
-const { stringify } = require('csv');
+
 const moment = require('moment-timezone');
 
 /**
@@ -183,30 +183,6 @@ router.get('/overview', auth, async (req, res) => {
 });
 
 /**
- * Get Attendance by ID
- */
-router.get('/:id', auth, async (req, res) => {
-  try {
-    const attendance = await Attendance.findById(req.params.id).populate('employee', 'employeeId name');
-    if (!attendance) {
-      // Return a default object instead of 404 to prevent frontend errors
-      return res.status(200).json({
-        message: 'Attendance record not found',
-        employee: { name: 'Unknown Employee', employeeId: 'N/A' },
-        date: new Date(),
-        punchIn: null,
-        punchOut: null,
-        status: 'unknown'
-      });
-    }
-    res.json(attendance);
-  } catch (err) {
-    console.error('Fetch attendance by ID error:', err);
-    res.status(500).json({ message: 'Server error while fetching attendance' });
-  }
-});
-
-/**
  * Admin: Download Attendance CSV - CORRECTED VERSION
  */
 router.get('/download', auth, async (req, res) => {
@@ -272,19 +248,9 @@ router.get('/download', auth, async (req, res) => {
       };
     });
 
-    const csvContent = stringify(records, {
-      header: true,
-      columns: {
-        employeeId: 'Employee ID',
-        name: 'Name',
-        date: 'Date',
-        punchIn: 'Punch In',
-        punchOut: 'Punch Out',
-        hoursWorked: 'Hours Worked',
-        hourlyRate: 'Hourly Rate (₹)',
-        totalSalary: 'Total Salary (₹)',
-      },
-    });
+    const header = 'Employee ID,Name,Date,Punch In,Punch Out,Hours Worked,Hourly Rate (₹),Total Salary (₹)\n';
+    const rows = records.map(r => `${r.employeeId},${r.name},${r.date},${r.punchIn},${r.punchOut},${r.hoursWorked},${r.hourlyRate},${r.totalSalary}`).join('\n');
+    const csvContent = header + rows;
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=attendance-${startDate}-${endDate}.csv`);
@@ -292,49 +258,6 @@ router.get('/download', auth, async (req, res) => {
   } catch (err) {
     console.error('Download CSV error:', err);
     res.status(500).json({ message: 'Server error while downloading CSV' });
-  }
-});
-
-/**
- * Admin: Manual Punch In/Out
- */
-router.post('/admin/punch', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
-  const { employeeId, date, punchIn, punchOut } = req.body;
-  try {
-    // Parse punchIn and punchOut as IST and convert to UTC for storage
-    const punchInUTC = punchIn ? moment.tz(punchIn, 'Asia/Kolkata').utc().toDate() : undefined;
-    const punchOutUTC = punchOut ? moment.tz(punchOut, 'Asia/Kolkata').utc().toDate() : undefined;
-
-    const attendance = await Attendance.findOneAndUpdate(
-      { employee: employeeId, date: new Date(date) },
-      { punchIn: punchInUTC, punchOut: punchOutUTC },
-      { new: true, upsert: true }
-    );
-    res.json(attendance);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-/**
- * Admin: Mark Holiday or Half Day
- */
-router.post('/admin/mark', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
-  const { employeeId, date, type } = req.body; // type: 'holiday' or 'halfDay'
-  try {
-    const update = type === 'holiday' ? { holiday: true } : { halfDay: true };
-    const attendance = await Attendance.findOneAndUpdate(
-      { employee: employeeId, date: new Date(date) },
-      update,
-      { new: true, upsert: true }
-    );
-    res.json(attendance);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
   }
 });
 
@@ -393,19 +316,9 @@ router.get('/download/my-attendance', auth, async (req, res) => {
       };
     });
 
-    const csvContent = stringify(records, {
-      header: true,
-      columns: {
-        employeeId: 'Employee ID',
-        name: 'Name',
-        date: 'Date',
-        punchIn: 'Punch In',
-        punchOut: 'Punch Out',
-        hoursWorked: 'Hours Worked',
-        hourlyRate: 'Hourly Rate (₹)',
-        totalSalary: 'Total Salary (₹)',
-      },
-    });
+    const header = 'Employee ID,Name,Date,Punch In,Punch Out,Hours Worked,Hourly Rate (₹),Total Salary (₹)\n';
+    const rows = records.map(r => `${r.employeeId},${r.name},${r.date},${r.punchIn},${r.punchOut},${r.hoursWorked},${r.hourlyRate},${r.totalSalary}`).join('\n');
+    const csvContent = header + rows;
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=my-attendance-${startDate}-${endDate}.csv`);
@@ -413,6 +326,73 @@ router.get('/download/my-attendance', auth, async (req, res) => {
   } catch (err) {
     console.error('Download my-attendance CSV error:', err);
     res.status(500).json({ message: 'Server error while downloading your attendance CSV' });
+  }
+});
+
+/**
+ * Get Attendance by ID
+ */
+router.get('/:id', auth, async (req, res) => {
+  try {
+    const attendance = await Attendance.findById(req.params.id).populate('employee', 'employeeId name');
+    if (!attendance) {
+      // Return a default object instead of 404 to prevent frontend errors
+      return res.status(200).json({
+        message: 'Attendance record not found',
+        employee: { name: 'Unknown Employee', employeeId: 'N/A' },
+        date: new Date(),
+        punchIn: null,
+        punchOut: null,
+        status: 'unknown'
+      });
+    }
+    res.json(attendance);
+  } catch (err) {
+    console.error('Fetch attendance by ID error:', err);
+    res.status(500).json({ message: 'Server error while fetching attendance' });
+  }
+});
+
+/**
+ * Admin: Manual Punch In/Out
+ */
+router.post('/admin/punch', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  const { employeeId, date, punchIn, punchOut } = req.body;
+  try {
+    // Parse punchIn and punchOut as IST and convert to UTC for storage
+    const punchInUTC = punchIn ? moment.tz(punchIn, 'Asia/Kolkata').utc().toDate() : undefined;
+    const punchOutUTC = punchOut ? moment.tz(punchOut, 'Asia/Kolkata').utc().toDate() : undefined;
+
+    const attendance = await Attendance.findOneAndUpdate(
+      { employee: employeeId, date: new Date(date) },
+      { punchIn: punchInUTC, punchOut: punchOutUTC },
+      { new: true, upsert: true }
+    );
+    res.json(attendance);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+/**
+ * Admin: Mark Holiday or Half Day
+ */
+router.post('/admin/mark', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  const { employeeId, date, type } = req.body; // type: 'holiday' or 'halfDay'
+  try {
+    const update = type === 'holiday' ? { holiday: true } : { halfDay: true };
+    const attendance = await Attendance.findOneAndUpdate(
+      { employee: employeeId, date: new Date(date) },
+      update,
+      { new: true, upsert: true }
+    );
+    res.json(attendance);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
