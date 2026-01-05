@@ -187,7 +187,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
           doc.font('Helvetica-Bold')
              .fillColor('#1e3a8a')
              .fontSize(9)
-             .text(`₹ ${earnings[i].amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 20, yPos + 4, { align: 'right', width: (doc.page.width / 2) - 50 });
+             .text(`INR ${earnings[i].amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 20, yPos + 4, { align: 'right', width: (doc.page.width / 2) - 50 });
         }
 
         // Deductions Row
@@ -204,7 +204,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
           doc.font('Helvetica-Bold')
              .fillColor('#dc2626')
              .fontSize(9)
-             .text(`₹ ${deductions[i].amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, (doc.page.width / 2) + 5, yPos + 4, { align: 'right', width: (doc.page.width / 2) - 50 });
+             .text(`INR ${deductions[i].amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, (doc.page.width / 2) + 5, yPos + 4, { align: 'right', width: (doc.page.width / 2) - 50 });
         }
 
         yPos += rowHeight;
@@ -220,7 +220,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
          .font('Helvetica-Bold')
          .text('TOTAL EARNINGS', 28, yPos + 4);
 
-      doc.text(`₹ ${(salarySlip.totalEarnings || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 20, yPos + 4, { align: 'right', width: (doc.page.width / 2) - 50 });
+      doc.text(`INR ${(salarySlip.totalEarnings || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 20, yPos + 4, { align: 'right', width: (doc.page.width / 2) - 50 });
 
       // Total Deductions
       doc.rect((doc.page.width / 2) + 5, yPos, (doc.page.width - 40) / 2 - 5, 20)
@@ -232,7 +232,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
          .font('Helvetica-Bold')
          .text('TOTAL DEDUCTIONS', (doc.page.width / 2) + 13, yPos + 4);
 
-      doc.text(`₹ ${(salarySlip.totalDeductions || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, (doc.page.width / 2) + 5, yPos + 4, { align: 'right', width: (doc.page.width / 2) - 50 });
+      doc.text(`INR ${(salarySlip.totalDeductions || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, (doc.page.width / 2) + 5, yPos + 4, { align: 'right', width: (doc.page.width / 2) - 50 });
 
       yPos += 30;
 
@@ -248,7 +248,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
 
       doc.fontSize(18)
          .font('Helvetica-Bold')
-         .text(`₹ ${(salarySlip.netSalary || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 28, yPos + 22);
+         .text(`INR ${(salarySlip.netSalary || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, 28, yPos + 22);
 
       doc.fontSize(9)
          .font('Helvetica')
