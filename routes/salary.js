@@ -18,7 +18,7 @@ const { generateSalarySlipPDF } = require('../utils/generatePDF');
  */
 router.post('/', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
-  const { employeeId, month, fixedAmount } = req.body;
+  const { employeeId, month, fixedAmount, bankName } = req.body;
   try {
     if (!fixedAmount || fixedAmount <= 0) return res.status(400).json({ message: 'Valid amount is required' });
 
@@ -36,7 +36,7 @@ router.post('/', auth, async (req, res) => {
       totalDeductions: 0,
       netSalary: parseFloat(fixedAmount),
       bankAccount: employee.bankAccount || '',
-      bankName: employee.bankName || '',
+      bankName: bankName || employee.bankName || '',
       department: employee.department || '',
       generatedBy: req.user.id,
     });
