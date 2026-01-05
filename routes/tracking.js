@@ -57,17 +57,11 @@ router.get('/', auth, async (req, res) => {
       }
     });
 
-    // Group employees by team (use department if team is empty)
-    const teams = {};
-
-    employees.forEach(emp => {
-      const teamName = emp.team || emp.department || 'No Team';
-      if (!teams[teamName]) {
-        teams[teamName] = [];
-      }
+    // Build employee tracking data
+    const trackingData = employees.map(emp => {
       const empAttendance = attendanceMap[emp._id.toString()] || { isActive: false, hoursWorked: 0, punchIn: null, punchOut: null, status: null };
       const empTasks = taskMap[emp._id.toString()] || [];
-      teams[teamName].push({
+      return {
         _id: emp._id,
         employeeId: emp.employeeId,
         name: emp.name,
@@ -80,20 +74,15 @@ router.get('/', auth, async (req, res) => {
         punchIn: empAttendance.punchIn,
         punchOut: empAttendance.punchOut,
         attendanceStatus: empAttendance.status,
-        todaysTasks: empTasks
-      });
+        todaysTasks: empTasks,
+        lastActivity: empAttendance.punchIn || emp.updatedAt
+      };
     });
 
-    // Convert to array format
-    const teamsArray = Object.keys(teams).map(teamName => ({
-      teamName,
-      employees: teams[teamName]
-    }));
-
-    res.json(teamsArray);
+    res.json(trackingData);
   } catch (err) {
-    console.error('Fetch teams error:', err);
-    res.status(500).json({ message: 'Server error while fetching teams' });
+    console.error('Fetch tracking error:', err);
+    res.status(500).json({ message: 'Server error while fetching tracking data' });
   }
 });
 
