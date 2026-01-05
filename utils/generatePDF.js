@@ -152,13 +152,26 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
          .font('Helvetica-Bold')
          .text(joiningDate, rightColumnX + labelWidth, yPos + 28);
       
-      // Bank Account with masking
-      const bankAccount = salarySlip.bankAccount || employee.bankAccount || '';
-      const maskedAccount = bankAccount ? '••••' + bankAccount.slice(-4) : 'N/A';
-      
+      // Bank Details
       doc.fillColor('#64748b')
          .font('Helvetica')
+         .text('Bank Name:', rightColumnX, yPos + 42);
+      
+      const bankName = employee.bankName || employee.bank_name || 'N/A';
+      doc.fillColor('#1e293b')
+         .font('Helvetica-Bold')
+         .text(bankName, rightColumnX + labelWidth, yPos + 42);
+
+      yPos += 10;
+
+      // Bank Account with masking - New row
+      doc.fillColor('#64748b')
+         .fontSize(9)
+         .font('Helvetica')
          .text('Bank A/C:', rightColumnX, yPos + 42);
+      
+      const bankAccount = salarySlip.bankAccount || employee.bankAccount || '';
+      const maskedAccount = bankAccount ? '••••' + bankAccount.slice(-4) : 'N/A';
       
       doc.fillColor('#1e293b')
          .font('Helvetica-Bold')
@@ -203,37 +216,37 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
         earnings.push({ description: 'Basic Pay', amount: salarySlip.basicPay });
       }
       
-      // Add other earnings if they exist
-      const earningComponents = ['hra', 'specialAllowance', 'conveyance', 'medicalAllowance', 'bonus', 'overtime'];
-      earningComponents.forEach(component => {
-        if (salarySlip[component] && salarySlip[component] > 0) {
-          const label = component.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
-          earnings.push({ description: label, amount: salarySlip[component] });
-        }
+      // Add other earnings components (always show all, even if zero)
+      const earningComponents = [
+        { key: 'hra', label: 'House Rent Allowance' },
+        { key: 'specialAllowance', label: 'Special Allowance' },
+        { key: 'conveyance', label: 'Conveyance Allowance' },
+        { key: 'medicalAllowance', label: 'Medical Allowance' },
+        { key: 'bonus', label: 'Bonus' },
+        { key: 'overtime', label: 'Overtime' },
+        { key: 'otherAllowances', label: 'Other Allowances' }
+      ];
+
+      earningComponents.forEach(item => {
+        const amount = salarySlip[item.key] || 0;
+        earnings.push({ description: item.label, amount: amount });
       });
 
-      // Add standard deductions
+      // Add standard deductions (always show all, even if zero)
       const deductionComponents = [
-        { key: 'pf', label: 'Provident Fund' },
+        { key: 'pf', label: 'Provident Fund (PF)' },
         { key: 'professionalTax', label: 'Professional Tax' },
-        { key: 'tds', label: 'Income Tax' },
+        { key: 'tds', label: 'Income Tax (TDS)' },
         { key: 'gratuity', label: 'Gratuity' },
+        { key: 'esi', label: 'Employee State Insurance (ESI)' },
+        { key: 'loan', label: 'Loan Recovery' },
         { key: 'otherDeductions', label: 'Other Deductions' }
       ];
 
       deductionComponents.forEach(item => {
-        if (salarySlip[item.key] && salarySlip[item.key] > 0) {
-          deductions.push({ description: item.label, amount: salarySlip[item.key] });
-        }
+        const amount = salarySlip[item.key] || 0;
+        deductions.push({ description: item.label, amount: amount });
       });
-
-      // If no earnings or deductions, add placeholder
-      if (earnings.length === 0) {
-        earnings.push({ description: 'Basic Pay', amount: 0 });
-      }
-      if (deductions.length === 0) {
-        deductions.push({ description: 'No Deductions', amount: 0 });
-      }
 
       const maxRows = Math.max(earnings.length, deductions.length);
 
@@ -252,10 +265,8 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
           let fontSize = 9;
           
           if (doc.widthOfString(description, { fontSize: fontSize }) > 150) {
-            while (description.length > 20 && fontSize > 7) {
-              description = description.substring(0, 20) + '...';
-              fontSize = 8;
-            }
+            description = description.substring(0, 25) + '...';
+            fontSize = 8;
           }
           
           doc.fillColor('#1e293b')
@@ -263,10 +274,11 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
              .font('Helvetica')
              .text(description, leftBoxX + 8, yPos + 4);
 
+          const amountText = `INR ${formatNumber(earnings[i].amount)}`;
           doc.font('Helvetica-Bold')
              .fillColor('#1e3a8a')
              .fontSize(9)
-             .text(formatCurrency(earnings[i].amount), leftBoxX, yPos + 4, { 
+             .text(amountText, leftBoxX, yPos + 4, { 
                align: 'right', 
                width: columnWidth - 13 
              });
@@ -283,10 +295,8 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
           let fontSize = 9;
           
           if (doc.widthOfString(description, { fontSize: fontSize }) > 150) {
-            while (description.length > 20 && fontSize > 7) {
-              description = description.substring(0, 20) + '...';
-              fontSize = 8;
-            }
+            description = description.substring(0, 25) + '...';
+            fontSize = 8;
           }
           
           doc.fillColor('#1e293b')
@@ -294,10 +304,11 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
              .font('Helvetica')
              .text(description, rightBoxX + 8, yPos + 4);
 
+          const amountText = `INR ${formatNumber(deductions[i].amount)}`;
           doc.font('Helvetica-Bold')
              .fillColor('#dc2626')
              .fontSize(9)
-             .text(formatCurrency(deductions[i].amount), rightBoxX, yPos + 4, { 
+             .text(amountText, rightBoxX, yPos + 4, { 
                align: 'right', 
                width: columnWidth - 13 
              });
@@ -319,7 +330,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
       const totalEarnings = salarySlip.totalEarnings || 
                           earnings.reduce((sum, item) => sum + (item.amount || 0), 0);
       
-      doc.text(formatCurrency(totalEarnings), leftBoxX, yPos + 4, { 
+      doc.text(`INR ${formatNumber(totalEarnings)}`, leftBoxX, yPos + 4, { 
         align: 'right', 
         width: columnWidth - 13 
       });
@@ -337,7 +348,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
       const totalDeductions = salarySlip.totalDeductions || 
                              deductions.reduce((sum, item) => sum + (item.amount || 0), 0);
       
-      doc.text(formatCurrency(totalDeductions), rightBoxX, yPos + 4, { 
+      doc.text(`INR ${formatNumber(totalDeductions)}`, rightBoxX, yPos + 4, { 
         align: 'right', 
         width: columnWidth - 13 
       });
@@ -357,11 +368,11 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
          .text('NET SALARY PAYABLE', 28, yPos + 8);
 
       doc.fontSize(16)
-         .text(formatCurrency(netSalary, true), 28, yPos + 22);
+         .text(`INR ${formatNumber(netSalary, true)}`, 28, yPos + 22);
 
       // Convert amount to words
       const amountInWords = numberToWords(netSalary);
-      const wordsText = `In Words: ${amountInWords} Only`;
+      const wordsText = `In Words: ${amountInWords} INR Only`;
       
       // Check if text fits in one line
       const wordsWidth = doc.widthOfString(wordsText, { fontSize: 9 });
@@ -430,63 +441,89 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
 
       doc.text('2. Please report any discrepancies within 7 days of receiving this slip.', 28, yPos + 26, { width: doc.page.width - 56 });
 
-      yPos += disclaimerHeight + 10;
+      yPos += disclaimerHeight + 15;
 
       // Signature Area
-      const signatureWidth = (doc.page.width - 60) / 2;
+      const signatureBoxWidth = (doc.page.width - 60) / 2;
+      const signatureBoxHeight = 45;
+      const signatureBoxY = yPos;
       
-      // Manager Signature
-      doc.rect(30, yPos, signatureWidth, 40)
-         .stroke('#cbd5e1');
+      // Manager Signature Box
+      doc.rect(30, signatureBoxY, signatureBoxWidth, signatureBoxHeight)
+         .stroke('#1e3a8a');
+      
+      // Manager Signature Line
+      doc.moveTo(30 + 10, signatureBoxY + 30)
+         .lineTo(30 + signatureBoxWidth - 10, signatureBoxY + 30)
+         .stroke('#1e3a8a')
+         .lineWidth(0.5);
 
+      // Manager Signature Image
       const managerSignaturePath = path.join(__dirname, '../assets/manager.jpeg');
       if (fs.existsSync(managerSignaturePath)) {
         try {
-          doc.image(managerSignaturePath, 40, yPos + 5, { width: 50, height: 25 });
+          doc.image(managerSignaturePath, 30 + (signatureBoxWidth/2) - 25, signatureBoxY + 5, { width: 50, height: 20 });
         } catch (err) {
           console.warn('Could not load manager signature:', err.message);
+          doc.fillColor('#1e3a8a')
+             .fontSize(8)
+             .font('Helvetica')
+             .text('Signature', 30 + (signatureBoxWidth/2) - 20, signatureBoxY + 10);
         }
       } else {
-        doc.fillColor('#cbd5e1')
-           .fontSize(24)
-           .text('✍️', 55, yPos + 5);
+        doc.fillColor('#1e3a8a')
+           .fontSize(8)
+           .font('Helvetica')
+           .text('Signature', 30 + (signatureBoxWidth/2) - 20, signatureBoxY + 10);
       }
 
-      doc.fillColor('#64748b')
+      doc.fillColor('#1e293b')
          .fontSize(9)
          .font('Helvetica-Bold')
-         .text('Manager', 30, yPos + 32, { align: 'center', width: signatureWidth });
+         .text('Manager', 30, signatureBoxY + 35, { align: 'center', width: signatureBoxWidth });
 
       doc.fontSize(8)
          .font('Helvetica')
-         .text('Authorized Signatory', 30, yPos + 42, { align: 'center', width: signatureWidth });
+         .text('Authorized Signatory', 30, signatureBoxY + 42, { align: 'center', width: signatureBoxWidth });
 
-      // Co-Founder Signature
-      const coFounderX = 30 + signatureWidth + 10;
-      doc.rect(coFounderX, yPos, signatureWidth, 40)
-         .stroke('#cbd5e1');
+      // Co-Founder Signature Box
+      const coFounderX = 30 + signatureBoxWidth + 10;
+      doc.rect(coFounderX, signatureBoxY, signatureBoxWidth, signatureBoxHeight)
+         .stroke('#1e3a8a');
+      
+      // Co-Founder Signature Line
+      doc.moveTo(coFounderX + 10, signatureBoxY + 30)
+         .lineTo(coFounderX + signatureBoxWidth - 10, signatureBoxY + 30)
+         .stroke('#1e3a8a')
+         .lineWidth(0.5);
 
+      // Co-Founder Signature Image
       const coFounderSignaturePath = path.join(__dirname, '../assets/co-founder.jpeg');
       if (fs.existsSync(coFounderSignaturePath)) {
         try {
-          doc.image(coFounderSignaturePath, coFounderX + 10, yPos + 5, { width: 50, height: 25 });
+          doc.image(coFounderSignaturePath, coFounderX + (signatureBoxWidth/2) - 25, signatureBoxY + 5, { width: 50, height: 20 });
         } catch (err) {
           console.warn('Could not load co-founder signature:', err.message);
+          doc.fillColor('#1e3a8a')
+             .fontSize(8)
+             .font('Helvetica')
+             .text('Signature', coFounderX + (signatureBoxWidth/2) - 20, signatureBoxY + 10);
         }
       } else {
-        doc.fillColor('#cbd5e1')
-           .fontSize(24)
-           .text('✍️', coFounderX + 25, yPos + 5);
+        doc.fillColor('#1e3a8a')
+           .fontSize(8)
+           .font('Helvetica')
+           .text('Signature', coFounderX + (signatureBoxWidth/2) - 20, signatureBoxY + 10);
       }
 
-      doc.fillColor('#64748b')
+      doc.fillColor('#1e293b')
          .fontSize(9)
          .font('Helvetica-Bold')
-         .text('Co-Founder', coFounderX, yPos + 32, { align: 'center', width: signatureWidth });
+         .text('Co-Founder', coFounderX, signatureBoxY + 35, { align: 'center', width: signatureBoxWidth });
 
       doc.fontSize(8)
          .font('Helvetica')
-         .text('Authorized Signatory', coFounderX, yPos + 42, { align: 'center', width: signatureWidth });
+         .text('Authorized Signatory', coFounderX, signatureBoxY + 42, { align: 'center', width: signatureBoxWidth });
 
       // Bottom Footer
       const footerY = doc.page.height - 25;
@@ -506,15 +543,13 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
   });
 };
 
-// Helper function to format currency
-function formatCurrency(amount, large = false) {
+// Helper function to format numbers with INR
+function formatNumber(amount, large = false) {
   if (amount === undefined || amount === null) amount = 0;
-  const formatted = `₹ ${parseFloat(amount).toLocaleString('en-IN', { 
+  return parseFloat(amount).toLocaleString('en-IN', { 
     minimumFractionDigits: 2, 
     maximumFractionDigits: 2 
-  })}`;
-  
-  return large ? formatted : formatted;
+  });
 }
 
 // Helper function to get current month and year
