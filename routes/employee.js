@@ -50,9 +50,16 @@ router.get('/', auth, async (req, res) => {
         const accruedPaidLeave = monthsDiff >= 6 ? Math.floor(monthsDiff * 1.5) : 0; // Eligible after 6 months, 1.5 days per month
         const calculatedPaidLeave = Math.max(0, accruedPaidLeave - (emp.usedPaidLeaves || 0)); // Carry over unused leaves
 
+        let salary = 'N/A';
+        if (latestSalary && latestSalary.netSalary && !isNaN(latestSalary.netSalary)) {
+          salary = latestSalary.netSalary;
+        } else if (emp.salary && !isNaN(emp.salary)) {
+          salary = emp.salary;
+        }
+
         return {
           ...emp._doc,
-          salary: latestSalary ? latestSalary.netSalary : 'N/A',
+          salary,
           paidLeaveBalance: calculatedPaidLeave,
           unpaidLeaveBalance: emp.unpaidLeaveBalance,
           isActive: emp.status === 'active'
