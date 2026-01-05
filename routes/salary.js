@@ -25,11 +25,12 @@ router.post('/', auth, async (req, res) => {
     const employee = await Employee.findById(employeeId);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
-
+    const year = parseInt(month.split('-')[0]);
 
     const salarySlip = new SalarySlip({
       employee: employeeId,
       month,
+      year,
       amount: parseFloat(fixedAmount),
       basicPay: parseFloat(fixedAmount),
       totalEarnings: parseFloat(fixedAmount),
