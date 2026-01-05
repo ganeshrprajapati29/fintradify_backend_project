@@ -196,7 +196,7 @@ router.post('/', auth, async (req, res) => {
 
 router.put('/:id', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
-  const { name, email, phone, position, department, bankAccount, password, salary, joiningDate } = req.body;
+  const { name, email, phone, position, department, bankAccount, bankName, password, salary, joiningDate, profilePhoto } = req.body;
   try {
     const employee = await Employee.findById(req.params.id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
@@ -208,6 +208,7 @@ router.put('/:id', auth, async (req, res) => {
     employee.department = department !== undefined ? department : employee.department;
     employee.bankAccount = bankAccount !== undefined ? bankAccount : employee.bankAccount;
     employee.bankName = bankName !== undefined ? bankName : employee.bankName;
+    employee.profilePhoto = profilePhoto !== undefined ? profilePhoto : employee.profilePhoto;
     if (joiningDate) employee.joiningDate = new Date(joiningDate);
     if (password) employee.password = await bcrypt.hash(password, 10);
     if (salary !== undefined) employee.salary = parseFloat(salary) || 0;
