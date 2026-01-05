@@ -86,7 +86,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
 
       const empDetailsRight = [
         { label: 'Joining Date:', value: employee.joiningDate ? new Date(employee.joiningDate).toLocaleDateString('en-IN') : 'N/A' },
-        { label: 'Bank Name:', value: salarySlip.bankName || '' },
+        { label: 'Bank Name:', value: employee.bankName || employee.bank_name || '' },
         { label: 'Bank A/C:', value: salarySlip.bankAccount ? salarySlip.bankAccount.slice(-4).padStart(salarySlip.bankAccount.length, '*') : 'N/A' }
       ];
 
@@ -257,7 +257,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
       yPos += 65;
 
       // ==================== PAYMENT DETAILS ====================
-      doc.fillColor('#1e293b')
+      doc.fillColor('#1e293b') 
          .fontSize(10)
          .font('Helvetica-Bold')
          .text('Payment Details', 20, yPos);
