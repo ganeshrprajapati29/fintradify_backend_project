@@ -11,19 +11,23 @@ const path = require('path');
 const { sendEmail } = require('../utils/sendEmail');
 const { generateSalarySlipPDF } = require('../utils/generatePDF');
 
-
 /**
  * @route POST /salary
- * @desc Create salary slip with fixed amount + send email
+ * @desc Create salary slip with fixed amount + send professional email
  */
 router.post('/', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  if (req.user.role !== 'admin')
+    return res.status(403).json({ message: 'Unauthorized' });
+
   const { employeeId, month, fixedAmount, bankName } = req.body;
+
   try {
-    if (!fixedAmount || fixedAmount <= 0) return res.status(400).json({ message: 'Valid amount is required' });
+    if (!fixedAmount || fixedAmount <= 0)
+      return res.status(400).json({ message: 'Valid amount is required' });
 
     const employee = await Employee.findById(employeeId);
-    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+    if (!employee)
+      return res.status(404).json({ message: 'Employee not found' });
 
     const year = parseInt(month.split('-')[0]);
 
@@ -44,28 +48,86 @@ router.post('/', auth, async (req, res) => {
       period: month,
       payDate: new Date(),
       generatedBy: req.user.id,
+      status: 'generated'
     });
+
     await salarySlip.save();
 
+    // Generate PDF
     const pdfBuffer = await generateSalarySlipPDF(salarySlip, employee);
+
+    /* ===========================
+       PROFESSIONAL EMAIL CONTENT
+    ============================ */
+
+    const subject = `Salary Slip – ${month}`;
+
+    const textMessage = `
+Dear ${employee.name},
+
+We hope you are doing well.
+
+Please find attached your salary slip for the month of ${month}. 
+The document provides a detailed breakdown of earnings, deductions, and the net payable amount.
+
+If you have any questions or notice any discrepancy, kindly contact the HR department within 3 working days.
+
+This is a system-generated email. Please do not reply to this message.
+
+Warm regards,
+Fintradify HR Team
+`;
+
+    const htmlMessage = `
+<p>Dear <strong>${employee.name}</strong>,</p>
+
+<p>We hope you are doing well.</p>
+
+<p>
+Please find attached your <strong>salary slip for the month of ${month}</strong>.
+The attached document includes a detailed breakdown of earnings, deductions, and net payable salary.
+</p>
+
+<p>
+If you have any questions or notice any discrepancy, kindly reach out to the HR department within
+<strong>3 working days</strong>.
+</p>
+
+<p style="font-size:13px;color:#666;">
+This is a system-generated email. Please do not reply to this message.
+</p>
+
+<p>
+Warm regards,<br/>
+<strong>Fintradify HR Team</strong>
+</p>
+`;
 
     try {
       await sendEmail(
         employee.email,
-        `Salary Slip for ${month}`,
-        `Dear ${employee.name},\n\nPlease find your salary slip for ${month} attached.\n\nRegards,\nFintradify HR Team`,
-        [{ filename: `salary-slip-${month}.pdf`, content: pdfBuffer }]
+        subject,
+        textMessage,
+        [
+          {
+            filename: `salary-slip-${month}.pdf`,
+            content: pdfBuffer
+          }
+        ],
+        htmlMessage
       );
 
-      // Update status to 'sent' after successful email
+      // Update status after successful email
       salarySlip.status = 'sent';
       await salarySlip.save();
 
       res.json(salarySlip);
     } catch (emailErr) {
       console.error('Email sending failed:', emailErr);
-      // Salary slip is saved but email failed, status remains 'generated'
-      res.status(207).json({ message: 'Salary slip generated but email sending failed', salarySlip });
+      res.status(207).json({
+        message: 'Salary slip generated but email sending failed',
+        salarySlip
+      });
     }
   } catch (err) {
     console.error(err);
@@ -79,37 +141,27 @@ router.post('/', auth, async (req, res) => {
  */
 router.get('/download/:id', auth, async (req, res) => {
   try {
-    console.log('Download request for ID:', req.params.id);
-    const salarySlip = await SalarySlip.findById(req.params.id).populate('employee');
-    console.log('Salary slip found:', !!salarySlip);
-    if (!salarySlip) return res.status(404).json({ message: 'Salary slip not found' });
-    if (!salarySlip.employee) return res.status(404).json({ message: 'Employee data not found' });
-    console.log('Employee data:', salarySlip.employee.name, salarySlip.employee.employeeId);
-    // if (req.user.role !== 'admin' && req.user.id !== salarySlip.employee._id.toString())
-    //   return res.status(403).json({ message: 'You do not have permission' });
+    const salarySlip = await SalarySlip
+      .findById(req.params.id)
+      .populate('employee');
 
-    console.log('Generating PDF for salary slip:', salarySlip._id, 'amount:', salarySlip.amount);
-    const pdfBuffer = await generateSalarySlipPDF(salarySlip, salarySlip.employee);
-    console.log('PDF generated successfully, buffer size:', pdfBuffer.length);
+    if (!salarySlip)
+      return res.status(404).json({ message: 'Salary slip not found' });
+
+    if (!salarySlip.employee)
+      return res.status(404).json({ message: 'Employee data not found' });
+
+    const pdfBuffer = await generateSalarySlipPDF(
+      salarySlip,
+      salarySlip.employee
+    );
 
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=salary-slip-${salarySlip.month}.pdf`);
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=salary-slip-${salarySlip.month}.pdf`
+    );
     res.end(pdfBuffer);
-  } catch (err) {
-    console.error('Download error details:', err.message);
-    console.error('Error stack:', err.stack);
-    res.status(500).json({ message: 'Server error', details: err.message });
-  }
-});
-
-/**
- * @route GET /salaryslips/my-slips
- * @desc Get logged-in user's slips
- */
-router.get('/my-slips', auth, async (req, res) => {
-  try {
-    const slips = await SalarySlip.find({ employee: req.user.id }).populate('employee');
-    res.json(slips);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -117,15 +169,16 @@ router.get('/my-slips', auth, async (req, res) => {
 });
 
 /**
- * @route POST /generate-monthly
- * @desc Generate salary slips for all employees based on attendance and send emails
+ * @route GET /salaryslips/my-slips
+ * @desc Get logged-in user's salary slips
  */
-router.post('/generate-monthly', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
-  const { month, year } = req.body;
+router.get('/my-slips', auth, async (req, res) => {
   try {
-    await generateMonthlySalarySlips(month, year);
-    res.json({ message: 'Salary slips generated and emails sent successfully' });
+    const slips = await SalarySlip
+      .find({ employee: req.user.id })
+      .populate('employee');
+
+    res.json(slips);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -134,10 +187,12 @@ router.post('/generate-monthly', auth, async (req, res) => {
 
 /**
  * @route GET /salaryslips
- * @desc Get all slips (admin only)
+ * @desc Get all salary slips (admin only)
  */
 router.get('/', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  if (req.user.role !== 'admin')
+    return res.status(403).json({ message: 'Unauthorized' });
+
   try {
     const slips = await SalarySlip.find().populate('employee');
     res.json(slips);
@@ -146,13 +201,5 @@ router.get('/', auth, async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
-
-// Helper function to get current financial year
-function getFinancialYear() {
-  const today = new Date();
-  const currentYear = today.getFullYear();
-  const nextYear = currentYear + 1;
-  return `${currentYear}-${nextYear.toString().slice(2)}`;
-}
 
 module.exports = router;
