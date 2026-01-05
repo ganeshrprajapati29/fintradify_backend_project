@@ -113,11 +113,11 @@ router.post('/', auth, async (req, res) => {
       const lta = Math.round(monthlySalary * 0.1); // 10% LTA
       const otherAllowances = monthlySalary - (basicPay + hra + conveyanceAllowance + medicalAllowance + lta);
 
-      // Calculate deductions
-      const pf = Math.round(basicPay * 0.12); // 12% PF
-      const professionalTax = 235; // Fixed professional tax
-      const gratuity = Math.round((basicPay * 15 * 30) / (30 * 26)); // Gratuity calculation
-      const otherDeductions = 0;
+        // Calculate deductions
+        const pf = 0; // No PF deduction
+        const professionalTax = 0; // No professional tax
+        const gratuity = 0; // No gratuity deduction
+        const otherDeductions = 0;
 
       // Calculate totals
       const totalEarnings = basicPay + hra + conveyanceAllowance + medicalAllowance + lta + otherAllowances;
@@ -234,9 +234,9 @@ router.put('/:id', auth, async (req, res) => {
         const otherAllowances = monthlySalary - (basicPay + hra + conveyanceAllowance + medicalAllowance + lta);
 
         // Calculate deductions
-        const pf = Math.round(basicPay * 0.12); // 12% PF
-        const professionalTax = 235; // Fixed professional tax
-        const gratuity = Math.round((basicPay * 15 * 30) / (30 * 26)); // Gratuity calculation
+        const pf = 0; // No PF deduction
+        const professionalTax = 0; // No professional tax
+        const gratuity = 0; // No gratuity deduction
         const otherDeductions = 0;
 
         // Calculate totals
@@ -275,9 +275,9 @@ router.put('/:id', auth, async (req, res) => {
         const otherAllowances = monthlySalary - (basicPay + hra + conveyanceAllowance + medicalAllowance + lta);
 
         // Calculate deductions
-        const pf = Math.round(basicPay * 0.12); // 12% PF
-        const professionalTax = 235; // Fixed professional tax
-        const gratuity = Math.round((basicPay * 15 * 30) / (30 * 26)); // Gratuity calculation
+        const pf = 0; // No PF deduction
+        const professionalTax = 0; // No professional tax
+        const gratuity = 0; // No gratuity deduction
         const otherDeductions = 0;
 
         // Calculate totals
@@ -566,9 +566,9 @@ router.put('/profile', auth, async (req, res) => {
         const otherAllowances = monthlySalary - (basicPay + hra + conveyanceAllowance + medicalAllowance + lta);
 
         // Calculate deductions
-        const pf = Math.round(basicPay * 0.12); // 12% PF
-        const professionalTax = 235; // Fixed professional tax
-        const gratuity = Math.round((basicPay * 15 * 30) / (30 * 26)); // Gratuity calculation
+        const pf = 0; // No PF deduction
+        const professionalTax = 0; // No professional tax
+        const gratuity = 0; // No gratuity deduction
         const otherDeductions = 0;
 
         // Calculate totals
@@ -606,9 +606,9 @@ router.put('/profile', auth, async (req, res) => {
         const otherAllowances = monthlySalary - (basicPay + hra + conveyanceAllowance + medicalAllowance + lta);
 
         // Calculate deductions
-        const pf = Math.round(basicPay * 0.12); // 12% PF
-        const professionalTax = 235; // Fixed professional tax
-        const gratuity = Math.round((basicPay * 15 * 30) / (30 * 26)); // Gratuity calculation
+        const pf = 0; // No PF deduction
+        const professionalTax = 0; // No professional tax
+        const gratuity = 0; // No gratuity deduction
         const otherDeductions = 0;
 
         // Calculate totals
