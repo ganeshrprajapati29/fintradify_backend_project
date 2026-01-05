@@ -265,8 +265,11 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
       yPos += 15;
 
       const payDetails = [
+        `Payroll Number: ${salarySlip.payrollNumber || 'N/A'}`,
+        `Pay Type: ${salarySlip.payType || 'Monthly'}`,
+        `Period: ${salarySlip.period || 'N/A'}`,
+        `Pay Date: ${salarySlip.payDate ? new Date(salarySlip.payDate).toLocaleDateString('en-IN') : 'N/A'}`,
         `Mode: ${salarySlip.paymentMode || 'Bank Transfer'}`,
-        `Date: ${salarySlip.paymentDate || 'Last working day of month'}`,
         `FY: ${salarySlip.financialYear || getFinancialYear()}`
       ];
 

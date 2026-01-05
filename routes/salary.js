@@ -38,6 +38,10 @@ router.post('/', auth, async (req, res) => {
       bankAccount: employee.bankAccount || '',
       bankName: bankName || employee.bankName || employee.bank_name || '',
       department: employee.department || '',
+      payrollNumber: `PAY-${Date.now()}`,
+      payType: 'Monthly',
+      period: month,
+      payDate: new Date(),
       generatedBy: req.user.id,
     });
     await salarySlip.save();
