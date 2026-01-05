@@ -19,8 +19,14 @@ router.get('/', auth, async (req, res) => {
       punchIn: { $ne: null }
     }).populate('employee', 'name employeeId team department');
 
-    // Create a set of employee IDs who have punched in today
-    const punchedInEmployeeIds = new Set(todaysAttendance.map(att => att.employee._id.toString()));
+    // Create a map of employee IDs to their attendance data
+    const attendanceMap = {};
+    todaysAttendance.forEach(att => {
+      attendanceMap[att.employee._id.toString()] = {
+        isActive: true,
+        hoursWorked: att.hoursWorked || 0
+      };
+    });
 
     // Group employees by team (use department if team is empty)
     const teams = {};
@@ -30,6 +36,7 @@ router.get('/', auth, async (req, res) => {
       if (!teams[teamName]) {
         teams[teamName] = [];
       }
+      const empAttendance = attendanceMap[emp._id.toString()] || { isActive: false, hoursWorked: 0 };
       teams[teamName].push({
         _id: emp._id,
         employeeId: emp.employeeId,
@@ -38,7 +45,8 @@ router.get('/', auth, async (req, res) => {
         department: emp.department,
         team: emp.team,
         profilePhoto: emp.profilePhoto,
-        isActive: punchedInEmployeeIds.has(emp._id.toString())
+        isActive: empAttendance.isActive,
+        hoursWorked: empAttendance.hoursWorked
       });
     });
 
