@@ -36,7 +36,7 @@ router.post('/', auth, async (req, res) => {
       totalDeductions: 0,
       netSalary: parseFloat(fixedAmount),
       bankAccount: employee.bankAccount || '',
-      bankName: bankName || employee.bankName || '',
+      bankName: bankName || employee.bankName || employee.bank_name || '',
       department: employee.department || '',
       generatedBy: req.user.id,
     });
