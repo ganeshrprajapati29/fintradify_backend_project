@@ -7,8 +7,8 @@ const auth = require('../middleware/auth');
 router.get('/', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
   try {
-    // Get today's date in YYYY-MM-DD format
-    const today = new Date().toISOString().split('T')[0];
+    // Get today's date in YYYY-MM-DD format (local date)
+    const today = new Date().toLocaleDateString('en-CA');
 
     // Get all employees
     const employees = await Employee.find({ status: 'active' });
