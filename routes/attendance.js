@@ -5,7 +5,7 @@ const SalarySlip = require('../models/SalarySlip');
 const Notification = require('../models/Notification');
 const Settings = require('../models/Settings');
 const auth = require('../middleware/auth');
-const { createObjectCsvStringifier } = require('csv-writer');
+const { stringify } = require('csv');
 const moment = require('moment-timezone');
 
 /**
@@ -236,19 +236,6 @@ router.get('/download', auth, async (req, res) => {
       month: { $gte: startDate.slice(0, 7), $lte: endDate.slice(0, 7) },
     }).lean();
 
-    const csvStringifier = createObjectCsvStringifier({
-      header: [
-        { id: 'employeeId', title: 'Employee ID' },
-        { id: 'name', title: 'Name' },
-        { id: 'date', title: 'Date' },
-        { id: 'punchIn', title: 'Punch In' },
-        { id: 'punchOut', title: 'Punch Out' },
-        { id: 'hoursWorked', title: 'Hours Worked' },
-        { id: 'hourlyRate', title: 'Hourly Rate (₹)' },
-        { id: 'totalSalary', title: 'Total Salary (₹)' },
-      ],
-    });
-
     const records = validAttendances.map(att => {
       const hoursWorked = att.punchOut && att.punchIn
         ? ((new Date(att.punchOut) - new Date(att.punchIn)) / 1000 / 60 / 60).toFixed(2)
@@ -285,7 +272,19 @@ router.get('/download', auth, async (req, res) => {
       };
     });
 
-    const csvContent = csvStringifier.getHeaderString() + csvStringifier.stringifyRecords(records);
+    const csvContent = stringify(records, {
+      header: true,
+      columns: {
+        employeeId: 'Employee ID',
+        name: 'Name',
+        date: 'Date',
+        punchIn: 'Punch In',
+        punchOut: 'Punch Out',
+        hoursWorked: 'Hours Worked',
+        hourlyRate: 'Hourly Rate (₹)',
+        totalSalary: 'Total Salary (₹)',
+      },
+    });
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=attendance-${startDate}-${endDate}.csv`);
@@ -363,19 +362,6 @@ router.get('/download/my-attendance', auth, async (req, res) => {
       month: { $gte: startDate.slice(0, 7), $lte: endDate.slice(0, 7) },
     }).lean();
 
-    const csvStringifier = createObjectCsvStringifier({
-      header: [
-        { id: 'employeeId', title: 'Employee ID' },
-        { id: 'name', title: 'Name' },
-        { id: 'date', title: 'Date' },
-        { id: 'punchIn', title: 'Punch In' },
-        { id: 'punchOut', title: 'Punch Out' },
-        { id: 'hoursWorked', title: 'Hours Worked' },
-        { id: 'hourlyRate', title: 'Hourly Rate (₹)' },
-        { id: 'totalSalary', title: 'Total Salary (₹)' },
-      ],
-    });
-
     const records = attendances.map(att => {
       const hoursWorked = att.punchOut && att.punchIn
         ? ((new Date(att.punchOut) - new Date(att.punchIn)) / 1000 / 60 / 60).toFixed(2)
@@ -388,7 +374,7 @@ router.get('/download/my-attendance', auth, async (req, res) => {
       if (salarySlip && salarySlip.hoursWorked > 0) {
         hourlyRate = (salarySlip.amount / salarySlip.hoursWorked).toFixed(2);
       }
-      
+
       const totalSalary = (parseFloat(hoursWorked) * parseFloat(hourlyRate)).toFixed(2);
 
       return {
@@ -407,7 +393,19 @@ router.get('/download/my-attendance', auth, async (req, res) => {
       };
     });
 
-    const csvContent = csvStringifier.getHeaderString() + csvStringifier.stringifyRecords(records);
+    const csvContent = stringify(records, {
+      header: true,
+      columns: {
+        employeeId: 'Employee ID',
+        name: 'Name',
+        date: 'Date',
+        punchIn: 'Punch In',
+        punchOut: 'Punch Out',
+        hoursWorked: 'Hours Worked',
+        hourlyRate: 'Hourly Rate (₹)',
+        totalSalary: 'Total Salary (₹)',
+      },
+    });
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=my-attendance-${startDate}-${endDate}.csv`);
