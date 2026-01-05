@@ -343,6 +343,8 @@ router.get('/profile', auth, async (req, res) => {
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
     const latestSalary = await SalarySlip.findOne({ employee: employee._id }).sort({ month: -1 });
 
+    if (latestSalary) employee.salary = latestSalary.amount;
+
     // Calculate paid leave balance with carry over
     const now = new Date();
     const joining = new Date(employee.joiningDate);
