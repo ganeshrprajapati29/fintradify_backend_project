@@ -221,12 +221,14 @@ router.get('/download', auth, async (req, res) => {
       date: { $gte: new Date(startDate), $lte: new Date(endDate) },
     }).populate('employee', 'employeeId name');
 
-    if (!attendances.length) {
+    const validAttendances = attendances.filter(att => att.employee);
+
+    if (!validAttendances.length) {
       return res.status(404).json({ message: 'No attendance records found for the selected date range' });
     }
 
-    // Get all unique employee IDs from attendances
-    const employeeIds = [...new Set(attendances.map(att => att.employee?._id?.toString()).filter(Boolean))];
+    // Get all unique employee IDs from valid attendances
+    const employeeIds = [...new Set(validAttendances.map(att => att.employee._id.toString()))];
 
     // Fetch salary slips for all employees in the date range
     const salarySlips = await SalarySlip.find({
@@ -247,7 +249,7 @@ router.get('/download', auth, async (req, res) => {
       ],
     });
 
-    const records = attendances.map(att => {
+    const records = validAttendances.map(att => {
       const hoursWorked = att.punchOut && att.punchIn
         ? ((new Date(att.punchOut) - new Date(att.punchIn)) / 1000 / 60 / 60).toFixed(2)
         : '0.00';
@@ -255,7 +257,7 @@ router.get('/download', auth, async (req, res) => {
 
       // Find salary slip for this employee and month
       const salarySlip = salarySlips.find(slip =>
-        slip.employee && slip.employee.toString() === att.employee?._id?.toString() &&
+        slip.employee && slip.employee.toString() === att.employee._id.toString() &&
         slip.month === dateMonth
       );
 
