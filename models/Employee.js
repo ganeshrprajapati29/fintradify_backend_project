@@ -16,6 +16,11 @@ const employeeSchema = new mongoose.Schema({
   status: { type: String, enum: ['active', 'terminated', 'blocked'], default: 'active' },
   joiningDate: { type: Date, required: true },
   profilePhoto: { type: String, default: '' },
+  location: {
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null },
+    lastUpdated: { type: Date, default: null }
+  },
   paidLeaveBalance: { type: Number, default: 0 },
   unpaidLeaveBalance: { type: Number, default: 6 },
   halfDayLeaveBalance: { type: Number, default: 0 },

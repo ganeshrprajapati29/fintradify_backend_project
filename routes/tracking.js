@@ -69,6 +69,7 @@ router.get('/', auth, async (req, res) => {
         department: emp.department,
         team: emp.team,
         profilePhoto: emp.profilePhoto,
+        location: emp.location,
         isActive: empAttendance.isActive,
         hoursWorked: empAttendance.hoursWorked,
         punchIn: empAttendance.punchIn,
