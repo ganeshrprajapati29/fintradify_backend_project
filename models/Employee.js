@@ -8,6 +8,7 @@ const employeeSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   position: { type: String, required: true },
   department: { type: String, default: '' },
+  team: { type: String, default: '' },
   bankAccount: { type: String, default: '' },
   bankName: { type: String, default: '' },
   salary: { type: Number, required: true, default: 0 },
