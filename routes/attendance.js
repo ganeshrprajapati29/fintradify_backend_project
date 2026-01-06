@@ -231,11 +231,8 @@ router.get('/download', auth, async (req, res) => {
 
     const validAttendances = attendances.filter(att => att.employee);
 
-    // Get all employees
-    const allEmployees = await Employee.find({}, 'employeeId name').lean();
-
-    // Get all unique employee IDs from valid attendances and all employees
-    const employeeIds = [...new Set([...validAttendances.map(att => att.employee._id.toString()), ...allEmployees.map(emp => emp._id.toString())])];
+    // Get all unique employee IDs from valid attendances
+    const employeeIds = [...new Set(validAttendances.map(att => att.employee._id.toString()))];
 
     // Fetch salary slips for all employees in the date range
     const salarySlips = await SalarySlip.find({
