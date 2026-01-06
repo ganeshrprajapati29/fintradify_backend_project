@@ -8,7 +8,7 @@ const attendanceSchema = new mongoose.Schema({
   holiday: { type: Boolean, default: false },
   halfDay: { type: Boolean, default: false },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-  timerStatus: { type: String, enum: ['active', 'paused'], default: 'active' },
+  timerStatus: { type: String, default: 'active' },
   pausedAt: { type: Date },
   totalPausedDuration: { type: Number, default: 0 }, // in milliseconds
 });
