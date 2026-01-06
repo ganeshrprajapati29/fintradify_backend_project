@@ -597,10 +597,10 @@ router.get('/active', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
   try {
     const activeAttendances = await Attendance.find({
-      punchIn: { $ne: null },
       punchOut: null
     }).populate('employee', 'employeeId name').sort({ punchIn: -1 });
-    res.json(activeAttendances);
+    const validAttendances = activeAttendances.filter(att => att.employee);
+    res.json(validAttendances);
   } catch (err) {
     console.error('Fetch active attendances error:', err);
     res.status(500).json({ message: 'Server error while fetching active attendances' });
