@@ -16,6 +16,7 @@ const alertsRoutes = require('./routes/alerts');
 const reimbursementRoutes = require('./routes/reimbursement');
 const teamsRoutes = require('./routes/teams');
 const trackingRoutes = require('./routes/tracking');
+const relievingRoutes = require('./routes/relieving');
 const demoRoutes = require('./routes/demo');
 const saldemoRoutes = require('./routes/saldemo');
 const cors = require('cors');
@@ -55,6 +56,7 @@ app.use('/api/saldemo', saldemoRoutes);
 app.use('/api/reimbursements', reimbursementRoutes);
 app.use('/api/teams', teamsRoutes);
 app.use('/api/tracking', trackingRoutes);
+app.use('/api/relieving', relievingRoutes);
 // ===== Root Route =====
 app.get('/', (req, res) => {
   res.send('🚀 HR Fintradify Backend LIVE');

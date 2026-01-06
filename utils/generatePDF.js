@@ -690,4 +690,219 @@ function numberToWords(num) {
   return result.trim() || 'Zero';
 }
 
-module.exports = { generateSalarySlipPDF };
+const generateRelievingLetterPDF = async (employee, relievingLetter) => {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 50,
+        bufferPages: true,
+        info: {
+          Title: `Relieving Letter - ${employee.name || 'Employee'}`,
+          Author: 'Fintradify HR System',
+          Subject: 'Relieving Letter',
+          Keywords: 'relieving, letter, termination',
+          CreationDate: new Date()
+        }
+      });
+
+      const buffers = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => {
+        const pdfBuffer = Buffer.concat(buffers);
+        resolve(pdfBuffer);
+      });
+      doc.on('error', reject);
+
+      // ==================== HEADER SECTION ====================
+      doc.rect(0, 0, doc.page.width, 100)
+         .fill('#1e3a8a');
+
+      // Company Logo
+      const logoPath = path.join(__dirname, '../assets/logoo.png');
+      if (fs.existsSync(logoPath)) {
+        doc.image(logoPath, 20, 15, { width: 50, height: 50 });
+      } else {
+        doc.fillColor('#ffffff')
+           .fontSize(24)
+           .font('Helvetica-Bold')
+           .text('F', 40, 30);
+      }
+
+      // Company Info
+      doc.fillColor('#ffffff')
+         .fontSize(16)
+         .font('Helvetica-Bold')
+         .text('FINTRADIFY', 80, 20);
+
+      doc.fontSize(8)
+         .font('Helvetica')
+         .text('Office No. 105, C6, Noida Sector 7, Uttar Pradesh - 201301', 80, 38);
+
+      doc.text('Phone: +91 78360 09907 | Email: hr@fintradify.com', 80, 50);
+
+      // Letter Title
+      doc.fillColor('#ffffff')
+         .fontSize(18)
+         .font('Helvetica-Bold')
+         .text('RELIEVING LETTER', doc.page.width - 220, 20, { align: 'right', width: 200 });
+
+      doc.fontSize(9)
+         .text(`Date: ${new Date().toLocaleDateString('en-IN')}`, doc.page.width - 220, 40, { align: 'right', width: 200 });
+
+      // ==================== LETTER CONTENT ====================
+      let yPos = 120;
+
+      // To Whom It May Concern
+      doc.fillColor('#1e293b')
+         .fontSize(12)
+         .font('Helvetica-Bold')
+         .text('To Whom It May Concern,', 50, yPos);
+
+      yPos += 30;
+
+      // Letter Body
+      doc.fontSize(11)
+         .font('Helvetica')
+         .text('This is to certify that', 50, yPos);
+
+      yPos += 20;
+
+      doc.font('Helvetica-Bold')
+         .text(`${employee.name || 'N/A'}`, 70, yPos);
+
+      yPos += 20;
+
+      const joiningDate = employee.joiningDate ? new Date(employee.joiningDate).toLocaleDateString('en-IN') : 'N/A';
+      const relievingDate = relievingLetter.relievingDate ? new Date(relievingLetter.relievingDate).toLocaleDateString('en-IN') : 'N/A';
+
+      doc.font('Helvetica')
+         .text(`has been employed with Fintradify from ${joiningDate} to ${relievingDate} as ${employee.position || 'N/A'} in the ${employee.department || 'N/A'} department.`, 50, yPos, { width: doc.page.width - 100 });
+
+      yPos += 30;
+
+      doc.text(`During the period of employment, ${employee.name ? (employee.name.split(' ')[0] === 'Mr' || employee.name.split(' ')[0] === 'Mrs' || employee.name.split(' ')[0] === 'Ms' ? 'his/her' : 'his/her') : 'his/her'} conduct and performance were satisfactory.`, 50, yPos, { width: doc.page.width - 100 });
+
+      yPos += 20;
+
+      doc.text(`The reason for relieving is: ${relievingLetter.reason || 'Resignation'}.`, 50, yPos, { width: doc.page.width - 100 });
+
+      yPos += 30;
+
+      doc.text('We wish him/her all the best for future endeavors.', 50, yPos);
+
+      yPos += 40;
+
+      // Closing
+      doc.font('Helvetica-Bold')
+         .text('Sincerely,', 50, yPos);
+
+      yPos += 20;
+
+      doc.text('Fintradify HR Team', 50, yPos);
+
+      // ==================== SIGNATURE SECTION ====================
+      yPos += 40;
+
+      const signatureBoxWidth = (doc.page.width - 100) / 2;
+      const signatureBoxHeight = 45;
+      const signatureBoxY = yPos;
+      
+      // Manager Signature Box (Left)
+      doc.rect(50, signatureBoxY, signatureBoxWidth, signatureBoxHeight)
+         .stroke('#cbd5e1');
+      
+      // Manager Signature Image
+      const managerSignaturePath = path.join(__dirname, '../assets/manager.jpeg');
+      if (fs.existsSync(managerSignaturePath)) {
+        try {
+          doc.image(managerSignaturePath, 50 + (signatureBoxWidth/2) - 20, signatureBoxY + 5, { 
+            width: 40, 
+            height: 20 
+          });
+        } catch (err) {
+          doc.fillColor('#cbd5e1')
+             .fontSize(16)
+             .text('✍️', 50 + (signatureBoxWidth/2) - 8, signatureBoxY + 8);
+        }
+      } else {
+        doc.fillColor('#cbd5e1')
+           .fontSize(16)
+           .text('✍️', 50 + (signatureBoxWidth/2) - 8, signatureBoxY + 8);
+      }
+      
+      // Manager Text
+      doc.fillColor('#64748b')
+         .fontSize(9)
+         .font('Helvetica-Bold')
+         .text('Manager', 50, signatureBoxY + 28, { 
+           align: 'center', 
+           width: signatureBoxWidth 
+         });
+      
+      doc.fontSize(8)
+         .font('Helvetica')
+         .text('Authorized Signatory', 50, signatureBoxY + 36, { 
+           align: 'center', 
+           width: signatureBoxWidth 
+         });
+
+      // Co-Founder Signature Box (Right)
+      const coFounderX = 50 + signatureBoxWidth + 10;
+      doc.rect(coFounderX, signatureBoxY, signatureBoxWidth, signatureBoxHeight)
+         .stroke('#cbd5e1');
+      
+      // Co-Founder Signature Image
+      const coFounderSignaturePath = path.join(__dirname, '../assets/co-founder.jpeg');
+      if (fs.existsSync(coFounderSignaturePath)) {
+        try {
+          doc.image(coFounderSignaturePath, coFounderX + (signatureBoxWidth/2) - 20, signatureBoxY + 5, { 
+            width: 40, 
+            height: 20 
+          });
+        } catch (err) {
+          doc.fillColor('#cbd5e1')
+             .fontSize(16)
+             .text('✍️', coFounderX + (signatureBoxWidth/2) - 8, signatureBoxY + 8);
+        }
+      } else {
+        doc.fillColor('#cbd5e1')
+           .fontSize(16)
+           .text('✍️', coFounderX + (signatureBoxWidth/2) - 8, signatureBoxY + 8);
+      }
+      
+      // Co-Founder Text
+      doc.fillColor('#64748b')
+         .fontSize(9)
+         .font('Helvetica-Bold')
+         .text('Co-Founder', coFounderX, signatureBoxY + 28, { 
+           align: 'center', 
+           width: signatureBoxWidth 
+         });
+      
+      doc.fontSize(8)
+         .font('Helvetica')
+         .text('Authorized Signatory', coFounderX, signatureBoxY + 36, { 
+           align: 'center', 
+           width: signatureBoxWidth 
+         });
+
+      // ==================== BOTTOM FOOTER ====================
+      const footerY = doc.page.height - 20;
+      doc.fillColor('#94a3b8')
+         .fontSize(8)
+         .font('Helvetica')
+         .text('© 2024 Fintradify HR Management System. All rights reserved.', 0, footerY - 10, { align: 'center' });
+
+      doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN')} | Page 1 of 1`, 0, footerY, { align: 'center' });
+
+      doc.end();
+
+    } catch (error) {
+      console.error('Relieving Letter PDF Generation Error:', error);
+      reject(error);
+    }
+  });
+};
+
+module.exports = { generateSalarySlipPDF, generateRelievingLetterPDF };
