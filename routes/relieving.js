@@ -168,4 +168,54 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
+// POST /relieving/send-email - Send custom email for relieving letter
+router.post('/send-email', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+
+  const { letterId, subject, content } = req.body;
+
+  if (!letterId || !subject || !content) {
+    return res.status(400).json({ message: 'Letter ID, subject, and content are required' });
+  }
+
+  try {
+    const letter = await RelievingLetter.findById(letterId).populate('employee');
+    if (!letter) {
+      return res.status(404).json({ message: 'Relieving letter not found' });
+    }
+
+    if (!letter.employee) {
+      return res.status(404).json({ message: 'Employee not found for this letter' });
+    }
+
+    // Send custom email
+    const html = `
+      <div style="font-family: 'Times New Roman', serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; background-color: #f9f9f9;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <img src="https://res.cloudinary.com/your-cloud-name/image/upload/v1234567890/logoo.png" alt="Fintradify Logo" style="max-width: 150px; height: auto;">
+          <h2 style="color: #1e3a8a; margin: 10px 0; font-size: 24px;">FINTRADIFY</h2>
+          <p style="color: #666; font-size: 14px; margin: 5px 0;">Office No. 105, C6, Noida Sector 7, Uttar Pradesh - 201301</p>
+          <p style="color: #666; font-size: 14px; margin: 5px 0;">Phone: +91 78360 09907 | Email: hr@fintradify.com</p>
+        </div>
+
+        <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          ${content.replace(/\n/g, '<br>')}
+        </div>
+
+        <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #999;">
+          <p>This is an automated email. Please do not reply to this message.</p>
+          <p>© ${new Date().getFullYear()} Fintradify. All rights reserved.</p>
+        </div>
+      </div>
+    `;
+
+    await sendEmail(letter.employee.email, subject, html);
+
+    res.json({ message: 'Custom email sent successfully' });
+  } catch (error) {
+    console.error('Send custom email error:', error);
+    res.status(500).json({ message: 'Server error while sending custom email' });
+  }
+});
+
 module.exports = router;
