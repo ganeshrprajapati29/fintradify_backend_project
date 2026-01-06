@@ -36,7 +36,7 @@ const MAX_DISTANCE = 100; // 100 meters
  * Punch In / Out
  */
 router.post('/punch', auth, async (req, res) => {
-  const { type, location } = req.body;
+  const { type, location, address } = req.body;
   try {
     // Check location
     if (!location || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
@@ -67,6 +67,7 @@ router.post('/punch', auth, async (req, res) => {
         date: new Date(),
         punchIn: new Date(),
         timerStatus: 'active',
+        locationAddress: address || 'Unknown Location',
       });
       await attendance.save();
       return res.json({ message: 'Punch-in recorded', attendance });
@@ -81,6 +82,7 @@ router.post('/punch', auth, async (req, res) => {
       }
       existingAttendance.punchOut = new Date();
       existingAttendance.status = 'pending'; // Set status to pending for admin approval
+      existingAttendance.locationAddress = address || existingAttendance.locationAddress || 'Unknown Location';
       await existingAttendance.save();
 
       // Create notification for admin
@@ -277,7 +279,7 @@ router.get('/download', auth, async (req, res) => {
 
       attendances.forEach(att => {
         const hoursWorked = parseFloat(calculateHours(att).toFixed(2));
-        const dailySalary = (hoursWorked / 8) * perDaySalary;
+        const dailySalary = att.punchOut ? perDaySalary : (hoursWorked / 8) * perDaySalary;
         totalSalary += dailySalary;
 
         allRows.push({
@@ -291,6 +293,7 @@ router.get('/download', auth, async (req, res) => {
             ? new Date(att.punchOut).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
             : '-',
           hoursWorked: hoursWorked.toFixed(2),
+          locationAddress: att.locationAddress || 'N/A',
           perDaySalary: perDaySalary.toFixed(2),
           dailySalary: dailySalary.toFixed(2),
         });
@@ -303,8 +306,8 @@ router.get('/download', auth, async (req, res) => {
       });
     });
 
-    const header = 'Employee ID,Name,Date,Punch In,Punch Out,Hours Worked,Per Day Salary (₹),Daily Salary (₹)\n';
-    const rows = allRows.map(r => `${r.employeeId},${r.name},${r.date},${r.punchIn},${r.punchOut},${r.hoursWorked},${r.perDaySalary},${r.dailySalary}`).join('\n');
+    const header = 'Employee ID,Name,Date,Punch In,Punch Out,Hours Worked,Location Address,Per Day Salary (₹),Daily Salary (₹)\n';
+    const rows = allRows.map(r => `${r.employeeId},${r.name},${r.date},${r.punchIn},${r.punchOut},${r.hoursWorked},${r.locationAddress},${r.perDaySalary},${r.dailySalary}`).join('\n');
 
     const summaryHeader = '\n\nEmployee ID,Name,Total Salary (₹)\n';
     const summary = summaryRows.map(r => `${r.employeeId},${r.name},${r.totalSalary}`).join('\n');

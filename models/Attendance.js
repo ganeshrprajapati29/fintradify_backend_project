@@ -11,6 +11,7 @@ const attendanceSchema = new mongoose.Schema({
   timerStatus: { type: String, default: 'active' },
   pausedAt: { type: Date },
   totalPausedDuration: { type: Number, default: 0 }, // in milliseconds
+  locationAddress: { type: String }, // Address where punch was made
 });
 
 module.exports = mongoose.model('Attendance', attendanceSchema);
