@@ -328,6 +328,23 @@ router.get('/download/my-attendance', auth, async (req, res) => {
 });
 
 /**
+ * Admin: Get Active Attendances (punched in, not punched out)
+ */
+router.get('/active', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  try {
+    const activeAttendances = await Attendance.find({
+      punchOut: null
+    }).populate('employee', 'employeeId name').sort({ punchIn: -1 });
+    const validAttendances = activeAttendances.filter(att => att.employee);
+    res.json(validAttendances);
+  } catch (err) {
+    console.error('Fetch active attendances error:', err);
+    res.status(500).json({ message: 'Server error while fetching active attendances' });
+  }
+});
+
+/**
  * Get Attendance by ID
  */
 router.get('/:id', auth, async (req, res) => {
@@ -587,23 +604,6 @@ router.put('/admin/resume/:id', auth, async (req, res) => {
   } catch (err) {
     console.error('Resume timer error:', err);
     res.status(500).json({ message: 'Server error while resuming timer' });
-  }
-});
-
-/**
- * Admin: Get Active Attendances (punched in, not punched out)
- */
-router.get('/active', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
-  try {
-    const activeAttendances = await Attendance.find({
-      punchOut: null
-    }).populate('employee', 'employeeId name').sort({ punchIn: -1 });
-    const validAttendances = activeAttendances.filter(att => att.employee);
-    res.json(validAttendances);
-  } catch (err) {
-    console.error('Fetch active attendances error:', err);
-    res.status(500).json({ message: 'Server error while fetching active attendances' });
   }
 });
 
