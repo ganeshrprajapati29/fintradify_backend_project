@@ -761,7 +761,7 @@ const generateRelievingLetterPDF = async (employee, relievingLetter) => {
 
       yPos += 30;
 
-      // Letter Body
+      // Letter Body - Professional Content
       doc.fontSize(11)
          .font('Helvetica')
          .text('This is to certify that', 50, yPos);
@@ -773,15 +773,15 @@ const generateRelievingLetterPDF = async (employee, relievingLetter) => {
 
       yPos += 20;
 
-      const joiningDate = employee.joiningDate ? new Date(employee.joiningDate).toLocaleDateString('en-IN') : 'N/A';
-      const relievingDate = relievingLetter.relievingDate ? new Date(relievingLetter.relievingDate).toLocaleDateString('en-IN') : 'N/A';
+      const joiningDate = employee.joiningDate ? new Date(employee.joiningDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A';
+      const relievingDate = relievingLetter.relievingDate ? new Date(relievingLetter.relievingDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'N/A';
 
       doc.font('Helvetica')
-         .text(`has been employed with Fintradify from ${joiningDate} to ${relievingDate} as ${employee.position || 'N/A'} in the ${employee.department || 'N/A'} department.`, 50, yPos, { width: doc.page.width - 100 });
+         .text(`has been employed with Fintradify Private Limited from ${joiningDate} to ${relievingDate} in the capacity of ${employee.position || 'N/A'} in the ${employee.department || 'N/A'} Department.`, 50, yPos, { width: doc.page.width - 100 });
 
       yPos += 30;
 
-      doc.text(`During the period of employment, ${employee.name ? (employee.name.split(' ')[0] === 'Mr' || employee.name.split(' ')[0] === 'Mrs' || employee.name.split(' ')[0] === 'Ms' ? 'his/her' : 'his/her') : 'his/her'} conduct and performance were satisfactory.`, 50, yPos, { width: doc.page.width - 100 });
+      doc.text(`During the tenure of employment, ${employee.name ? (employee.name.split(' ')[0] === 'Mr' || employee.name.split(' ')[0] === 'Mrs' || employee.name.split(' ')[0] === 'Ms' ? employee.name.split(' ')[0] === 'Mr' ? 'his' : 'her' : 'his/her') : 'his/her'} conduct and performance were found to be satisfactory.`, 50, yPos, { width: doc.page.width - 100 });
 
       yPos += 20;
 
@@ -789,7 +789,11 @@ const generateRelievingLetterPDF = async (employee, relievingLetter) => {
 
       yPos += 30;
 
-      doc.text('We wish him/her all the best for future endeavors.', 50, yPos);
+      doc.text('This certificate is issued upon request and does not constitute any liability on the part of the company.', 50, yPos, { width: doc.page.width - 100 });
+
+      yPos += 20;
+
+      doc.text('We wish him/her every success in future endeavors.', 50, yPos);
 
       yPos += 40;
 
