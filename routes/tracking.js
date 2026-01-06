@@ -40,7 +40,7 @@ router.get('/', auth, async (req, res) => {
     todaysAttendance.forEach(att => {
       const hoursWorked = calculateHours(att).toFixed(2);
       attendanceMap[att.employee._id.toString()] = {
-        isActive: true,
+        isActive: att.timerStatus === 'active',
         hoursWorked: parseFloat(hoursWorked),
         punchIn: att.punchIn,
         punchOut: att.punchOut,
