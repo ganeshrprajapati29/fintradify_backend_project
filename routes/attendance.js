@@ -279,7 +279,7 @@ router.get('/download', auth, async (req, res) => {
 
       attendances.forEach(att => {
         const hoursWorked = parseFloat(calculateHours(att).toFixed(2));
-        const dailySalary = att.punchOut ? perDaySalary : (hoursWorked / 8) * perDaySalary;
+        const dailySalary = att.punchIn ? perDaySalary : 0; // Full day salary if punched in, regardless of punch out
         totalSalary += dailySalary;
 
         allRows.push({
@@ -347,18 +347,26 @@ router.get('/download/my-attendance', auth, async (req, res) => {
       month: { $gte: startDate.slice(0, 7), $lte: endDate.slice(0, 7) },
     }).lean();
 
+    let totalSalary = 0;
+    const dateMonth = startDate.slice(0, 7); // Assuming single month for simplicity
+
+    // Find salary slip for this employee and month
+    const salarySlip = salarySlips.find(slip =>
+      slip.employee && slip.employee.toString() === req.user.id &&
+      slip.month === dateMonth
+    );
+
+    let monthlySalary = 21000; // Default
+    if (salarySlip) {
+      monthlySalary = salarySlip.amount;
+    }
+
+    const perDaySalary = monthlySalary / 30;
+
     const records = attendances.map(att => {
-      const hoursWorked = calculateHours(att).toFixed(2);
-      const dateMonth = new Date(att.date).toISOString().slice(0, 7);
-
-      const salarySlip = salarySlips.find(slip => slip.month === dateMonth);
-
-      let hourlyRate = '100.00';
-      if (salarySlip && salarySlip.hoursWorked > 0) {
-        hourlyRate = (salarySlip.amount / salarySlip.hoursWorked).toFixed(2);
-      }
-
-      const totalSalary = (parseFloat(hoursWorked) * parseFloat(hourlyRate)).toFixed(2);
+      const hoursWorked = parseFloat(calculateHours(att).toFixed(2));
+      const dailySalary = att.punchIn ? perDaySalary : 0; // Full day salary if punched in, regardless of punch out
+      totalSalary += dailySalary;
 
       return {
         employeeId: att.employee?.employeeId || 'N/A',
@@ -370,15 +378,20 @@ router.get('/download/my-attendance', auth, async (req, res) => {
         punchOut: att.punchOut
           ? new Date(att.punchOut).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
           : '-',
-        hoursWorked,
-        hourlyRate,
-        totalSalary,
+        hoursWorked: hoursWorked.toFixed(2),
+        locationAddress: att.locationAddress || 'N/A',
+        perDaySalary: perDaySalary.toFixed(2),
+        dailySalary: dailySalary.toFixed(2),
       };
     });
 
-    const header = 'Employee ID,Name,Date,Punch In,Punch Out,Hours Worked,Hourly Rate (₹),Total Salary (₹)\n';
-    const rows = records.map(r => `${r.employeeId},${r.name},${r.date},${r.punchIn},${r.punchOut},${r.hoursWorked},${r.hourlyRate},${r.totalSalary}`).join('\n');
-    const csvContent = header + rows;
+    const header = 'Employee ID,Name,Date,Punch In,Punch Out,Hours Worked,Location Address,Per Day Salary (₹),Daily Salary (₹)\n';
+    const rows = records.map(r => `${r.employeeId},${r.name},${r.date},${r.punchIn},${r.punchOut},${r.hoursWorked},${r.locationAddress},${r.perDaySalary},${r.dailySalary}`).join('\n');
+
+    const summaryHeader = '\n\nEmployee ID,Name,Total Salary (₹)\n';
+    const summary = `${records[0].employeeId},${records[0].name},${totalSalary.toFixed(2)}\n`;
+
+    const csvContent = header + rows + summaryHeader + summary;
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=my-attendance-${startDate}-${endDate}.csv`);
