@@ -227,7 +227,7 @@ router.get('/download', auth, async (req, res) => {
   try {
     const attendances = await Attendance.find({
       date: { $gte: new Date(startDate), $lte: new Date(endDate) },
-    }).populate('employee', 'employeeId name');
+    }).populate('employee', 'employeeId name bankAccount bankName');
 
     const validAttendances = attendances.filter(att => att.employee);
 
@@ -331,6 +331,8 @@ router.get('/download', auth, async (req, res) => {
       summaryRows.push({
         employeeId: employee.employeeId || 'N/A',
         name: employee.name || 'N/A',
+        bankName: employee.bankName || 'N/A',
+        bankAccount: employee.bankAccount || 'N/A',
         totalSalary: totalSalary.toFixed(2),
       });
     });
@@ -338,8 +340,8 @@ router.get('/download', auth, async (req, res) => {
     const header = 'Employee ID,Name,Date,Punch In,Punch Out,Hours Worked,Location Address,Per Day Salary (₹),Daily Salary (₹)\n';
     const rows = allRows.map(r => `${r.employeeId},${r.name},${r.date},${r.punchIn},${r.punchOut},${r.hoursWorked},${r.locationAddress},${r.perDaySalary},${r.dailySalary}`).join('\n');
 
-    const summaryHeader = '\n\nEmployee ID,Name,Total Salary (₹)\n';
-    const summary = summaryRows.map(r => `${r.employeeId},${r.name},${r.totalSalary}`).join('\n');
+    const summaryHeader = '\n\nEmployee ID,Name,Bank Name,Bank Account Number,Total Salary (₹)\n';
+    const summary = summaryRows.map(r => `${r.employeeId},${r.name},${r.bankName},${r.bankAccount},${r.totalSalary}`).join('\n');
 
     const csvContent = header + rows + summaryHeader + summary;
 
