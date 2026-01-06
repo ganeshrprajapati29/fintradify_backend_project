@@ -4,6 +4,7 @@ const Attendance = require('../models/Attendance');
 const SalarySlip = require('../models/SalarySlip');
 const Notification = require('../models/Notification');
 const Settings = require('../models/Settings');
+const Employee = require('../models/Employee');
 const auth = require('../middleware/auth');
 
 const moment = require('moment-timezone');
@@ -230,12 +231,11 @@ router.get('/download', auth, async (req, res) => {
 
     const validAttendances = attendances.filter(att => att.employee);
 
-    if (!validAttendances.length) {
-      return res.status(404).json({ message: 'No attendance records found for the selected date range' });
-    }
+    // Get all employees
+    const allEmployees = await Employee.find({}, 'employeeId name').lean();
 
-    // Get all unique employee IDs from valid attendances
-    const employeeIds = [...new Set(validAttendances.map(att => att.employee._id.toString()))];
+    // Get all unique employee IDs from valid attendances and all employees
+    const employeeIds = [...new Set([...validAttendances.map(att => att.employee._id.toString()), ...allEmployees.map(emp => emp._id.toString())])];
 
     // Fetch salary slips for all employees in the date range
     const salarySlips = await SalarySlip.find({
@@ -256,8 +256,27 @@ router.get('/download', auth, async (req, res) => {
       employeeAttendances[empId].attendances.push(att);
     });
 
+    // Add all employees to the map if not present
+    allEmployees.forEach(emp => {
+      const empId = emp._id.toString();
+      if (!employeeAttendances[empId]) {
+        employeeAttendances[empId] = {
+          employee: emp,
+          attendances: []
+        };
+      }
+    });
+
     const allRows = [];
     const summaryRows = [];
+
+    // Generate date range
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const dateRange = [];
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      dateRange.push(new Date(d));
+    }
 
     Object.values(employeeAttendances).forEach(({ employee, attendances }) => {
       const empId = employee._id.toString();
@@ -277,26 +296,48 @@ router.get('/download', auth, async (req, res) => {
 
       const perDaySalary = monthlySalary / 30;
 
-      attendances.forEach(att => {
-        const hoursWorked = parseFloat(calculateHours(att).toFixed(2));
-        const dailySalary = att.punchIn ? perDaySalary : 0; // Full day salary if punched in, regardless of punch out
-        totalSalary += dailySalary;
+      // Add Sunday rows for all employees
+      dateRange.forEach(date => {
+        if (date.getDay() === 0) { // Sunday
+          totalSalary += perDaySalary;
+          allRows.push({
+            employeeId: employee.employeeId || 'N/A',
+            name: employee.name || 'N/A',
+            date: date.toLocaleDateString('en-IN'),
+            punchIn: 'Holiday',
+            punchOut: 'Holiday',
+            hoursWorked: '0.00',
+            locationAddress: 'Holiday',
+            perDaySalary: perDaySalary.toFixed(2),
+            dailySalary: perDaySalary.toFixed(2),
+          });
+        }
+      });
 
-        allRows.push({
-          employeeId: employee.employeeId || 'N/A',
-          name: employee.name || 'N/A',
-          date: new Date(att.date).toLocaleDateString('en-IN'),
-          punchIn: att.punchIn
-            ? new Date(att.punchIn).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
-            : '-',
-          punchOut: att.punchOut
-            ? new Date(att.punchOut).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
-            : '-',
-          hoursWorked: hoursWorked.toFixed(2),
-          locationAddress: att.locationAddress || 'N/A',
-          perDaySalary: perDaySalary.toFixed(2),
-          dailySalary: dailySalary.toFixed(2),
-        });
+      // Add attendance rows for non-Sundays
+      attendances.forEach(att => {
+        const attDate = new Date(att.date);
+        if (attDate.getDay() !== 0) { // Not Sunday
+          const hoursWorked = parseFloat(calculateHours(att).toFixed(2));
+          const dailySalary = att.punchIn ? perDaySalary : 0; // Full day salary if punched in, regardless of punch out
+          totalSalary += dailySalary;
+
+          allRows.push({
+            employeeId: employee.employeeId || 'N/A',
+            name: employee.name || 'N/A',
+            date: attDate.toLocaleDateString('en-IN'),
+            punchIn: att.punchIn
+              ? new Date(att.punchIn).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+              : '-',
+            punchOut: att.punchOut
+              ? new Date(att.punchOut).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+              : '-',
+            hoursWorked: hoursWorked.toFixed(2),
+            locationAddress: att.locationAddress || 'N/A',
+            perDaySalary: perDaySalary.toFixed(2),
+            dailySalary: dailySalary.toFixed(2),
+          });
+        }
       });
 
       summaryRows.push({
