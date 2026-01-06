@@ -588,7 +588,7 @@ const generateSalarySlipPDF = async (salarySlip, employee) => {
       doc.fillColor('#94a3b8')
          .fontSize(8)
          .font('Helvetica')
-         .text('© 2024 Fintradify HR Management System. All rights reserved.', 0, footerY - 10, { align: 'center' });
+         .text('© 2026 Fintradify HR Management System. All rights reserved.', 0, footerY - 10, { align: 'center' });
 
       doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN')} | Page 1 of 1`, 0, footerY, { align: 'center' });
 
@@ -899,7 +899,7 @@ const generateRelievingLetterPDF = async (employee, relievingLetter) => {
       doc.fillColor('#94a3b8')
          .fontSize(8)
          .font('Helvetica')
-         .text('© 2024 Fintradify HR Management System. All rights reserved.', 0, footerY - 10, { align: 'center' });
+         .text('© 2026 Fintradify HR Management System. All rights reserved.', 0, footerY - 10, { align: 'center' });
 
       doc.text(`Generated on: ${new Date().toLocaleDateString('en-IN')} | Page 1 of 1`, 0, footerY, { align: 'center' });
 
@@ -1098,13 +1098,19 @@ const generateOfferLetterPDF = async (employee, offerLetter) => {
 
       yPos += rowHeight;
 
-      // Calculate salary components based on specified percentages
+      // Calculate salary components based on specified percentages - ensuring total adds up correctly
       const totalSalary = offerLetter.salary || 30000;
+
+      // Calculate components with proper rounding to ensure total equals original salary
       const basicSalary = Math.round(totalSalary * 0.4); // 40% Basic Pay
       const hra = Math.round(totalSalary * 0.4); // 40% House Rent Allowance
       const conveyance = Math.round(totalSalary * 0.08); // 8% Conveyance Allowance
       const medical = Math.round(totalSalary * 0.06); // 6% Medical Allowance
-      const special = Math.round(totalSalary * 0.06); // 6% Special Allowance
+
+      // Calculate special allowance to ensure total equals original salary
+      const calculatedTotal = basicSalary + hra + conveyance + medical;
+      const special = totalSalary - calculatedTotal; // Remaining amount for Special Allowance
+
       const lta = 0; // LTA removed as per new breakdown
 
       const salaryComponents = [
