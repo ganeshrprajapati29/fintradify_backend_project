@@ -253,16 +253,7 @@ router.get('/download', auth, async (req, res) => {
       employeeAttendances[empId].attendances.push(att);
     });
 
-    // Add all employees to the map if not present
-    allEmployees.forEach(emp => {
-      const empId = emp._id.toString();
-      if (!employeeAttendances[empId]) {
-        employeeAttendances[empId] = {
-          employee: emp,
-          attendances: []
-        };
-      }
-    });
+
 
     const allRows = [];
     const summaryRows = [];
