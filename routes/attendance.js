@@ -15,12 +15,39 @@ function calculateHours(att) {
   return (totalTime - att.totalPausedDuration) / (1000 * 60 * 60);
 }
 
+// Haversine formula to calculate distance between two points in meters
+function calculateDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371000; // Radius of the Earth in meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Office location (Noida)
+const OFFICE_LAT = 28.595339;
+const OFFICE_LNG = 77.318415;
+const MAX_DISTANCE = 100; // 100 meters
+
 /**
  * Punch In / Out
  */
 router.post('/punch', auth, async (req, res) => {
-  const { type } = req.body;
+  const { type, location } = req.body;
   try {
+    // Check location
+    if (!location || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
+      return res.status(400).json({ message: 'Location (latitude and longitude) is required' });
+    }
+
+    const distance = calculateDistance(location.lat, location.lng, OFFICE_LAT, OFFICE_LNG);
+    if (distance > MAX_DISTANCE) {
+      return res.status(403).json({ message: `You must be within ${MAX_DISTANCE} meters of the office to punch ${type}. Current distance: ${distance.toFixed(2)} meters.` });
+    }
+
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
@@ -214,43 +241,75 @@ router.get('/download', auth, async (req, res) => {
       month: { $gte: startDate.slice(0, 7), $lte: endDate.slice(0, 7) },
     }).lean();
 
-    const records = validAttendances.map(att => {
-      const hoursWorked = calculateHours(att).toFixed(2);
-      const dateMonth = new Date(att.date).toISOString().slice(0, 7);
+    // Group attendances by employee
+    const employeeAttendances = {};
+    validAttendances.forEach(att => {
+      const empId = att.employee._id.toString();
+      if (!employeeAttendances[empId]) {
+        employeeAttendances[empId] = {
+          employee: att.employee,
+          attendances: []
+        };
+      }
+      employeeAttendances[empId].attendances.push(att);
+    });
+
+    const allRows = [];
+    const summaryRows = [];
+
+    Object.values(employeeAttendances).forEach(({ employee, attendances }) => {
+      const empId = employee._id.toString();
+      let totalSalary = 0;
+      const dateMonth = startDate.slice(0, 7); // Assuming single month for simplicity
 
       // Find salary slip for this employee and month
       const salarySlip = salarySlips.find(slip =>
-        slip.employee && slip.employee.toString() === att.employee._id.toString() &&
+        slip.employee && slip.employee.toString() === empId &&
         slip.month === dateMonth
       );
 
-      // Use salary slip data if available, otherwise use default
-      let hourlyRate = '100.00';
-      if (salarySlip && salarySlip.hoursWorked > 0) {
-        hourlyRate = (salarySlip.amount / salarySlip.hoursWorked).toFixed(2);
+      let monthlySalary = 21000; // Default
+      if (salarySlip) {
+        monthlySalary = salarySlip.amount;
       }
 
-      const totalSalary = (parseFloat(hoursWorked) * parseFloat(hourlyRate)).toFixed(2);
+      const perDaySalary = monthlySalary / 30;
 
-      return {
-        employeeId: att.employee?.employeeId || 'N/A',
-        name: att.employee?.name || 'N/A',
-        date: new Date(att.date).toLocaleDateString('en-IN'),
-        punchIn: att.punchIn
-          ? new Date(att.punchIn).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
-          : '-',
-        punchOut: att.punchOut
-          ? new Date(att.punchOut).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
-          : '-',
-        hoursWorked,
-        hourlyRate,
-        totalSalary,
-      };
+      attendances.forEach(att => {
+        const hoursWorked = parseFloat(calculateHours(att).toFixed(2));
+        const dailySalary = (hoursWorked / 8) * perDaySalary;
+        totalSalary += dailySalary;
+
+        allRows.push({
+          employeeId: employee.employeeId || 'N/A',
+          name: employee.name || 'N/A',
+          date: new Date(att.date).toLocaleDateString('en-IN'),
+          punchIn: att.punchIn
+            ? new Date(att.punchIn).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+            : '-',
+          punchOut: att.punchOut
+            ? new Date(att.punchOut).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+            : '-',
+          hoursWorked: hoursWorked.toFixed(2),
+          perDaySalary: perDaySalary.toFixed(2),
+          dailySalary: dailySalary.toFixed(2),
+        });
+      });
+
+      summaryRows.push({
+        employeeId: employee.employeeId || 'N/A',
+        name: employee.name || 'N/A',
+        totalSalary: totalSalary.toFixed(2),
+      });
     });
 
-    const header = 'Employee ID,Name,Date,Punch In,Punch Out,Hours Worked,Hourly Rate (₹),Total Salary (₹)\n';
-    const rows = records.map(r => `${r.employeeId},${r.name},${r.date},${r.punchIn},${r.punchOut},${r.hoursWorked},${r.hourlyRate},${r.totalSalary}`).join('\n');
-    const csvContent = header + rows;
+    const header = 'Employee ID,Name,Date,Punch In,Punch Out,Hours Worked,Per Day Salary (₹),Daily Salary (₹)\n';
+    const rows = allRows.map(r => `${r.employeeId},${r.name},${r.date},${r.punchIn},${r.punchOut},${r.hoursWorked},${r.perDaySalary},${r.dailySalary}`).join('\n');
+
+    const summaryHeader = '\n\nEmployee ID,Name,Total Salary (₹)\n';
+    const summary = summaryRows.map(r => `${r.employeeId},${r.name},${r.totalSalary}`).join('\n');
+
+    const csvContent = header + rows + summaryHeader + summary;
 
     res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename=attendance-${startDate}-${endDate}.csv`);
