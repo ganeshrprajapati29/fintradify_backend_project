@@ -3,7 +3,7 @@ const router = express.Router();
 const RelievingLetter = require('../models/RelievingLetter');
 const Employee = require('../models/Employee');
 const { generateRelievingLetterPDF } = require('../utils/generatePDF');
-const sendEmail = require('../utils/sendEmail');
+const { sendEmail } = require('../utils/sendEmail');
 const cloudinary = require('cloudinary').v2;
 const auth = require('../middleware/auth');
 
