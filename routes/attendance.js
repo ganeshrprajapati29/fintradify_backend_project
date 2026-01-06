@@ -292,6 +292,7 @@ router.get('/download', auth, async (req, res) => {
             employeeId: employee.employeeId || 'N/A',
             name: employee.name || 'N/A',
             date: date.toLocaleDateString('en-IN'),
+            weekday: date.toLocaleDateString('en-IN', { weekday: 'long' }),
             punchIn: 'Holiday',
             punchOut: 'Holiday',
             hoursWorked: '0.00',
@@ -314,6 +315,7 @@ router.get('/download', auth, async (req, res) => {
             employeeId: employee.employeeId || 'N/A',
             name: employee.name || 'N/A',
             date: attDate.toLocaleDateString('en-IN'),
+            weekday: attDate.toLocaleDateString('en-IN', { weekday: 'long' }),
             punchIn: att.punchIn
               ? new Date(att.punchIn).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
               : '-',
@@ -337,8 +339,8 @@ router.get('/download', auth, async (req, res) => {
       });
     });
 
-    const header = 'Employee ID,Name,Date,Punch In,Punch Out,Hours Worked,Location Address,Per Day Salary (₹),Daily Salary (₹)\n';
-    const rows = allRows.map(r => `${r.employeeId},${r.name},${r.date},${r.punchIn},${r.punchOut},${r.hoursWorked},${r.locationAddress},${r.perDaySalary},${r.dailySalary}`).join('\n');
+    const header = 'Employee ID,Name,Date,Weekday,Punch In,Punch Out,Hours Worked,Location Address,Per Day Salary (₹),Daily Salary (₹)\n';
+    const rows = allRows.map(r => `${r.employeeId},${r.name},${r.date},${r.weekday},${r.punchIn},${r.punchOut},${r.hoursWorked},${r.locationAddress},${r.perDaySalary},${r.dailySalary}`).join('\n');
 
     const summaryHeader = '\n\nEmployee ID,Name,Bank Name,Bank Account Number,Total Salary (₹)\n';
     const summary = summaryRows.map(r => `${r.employeeId},${r.name},${r.bankName},${r.bankAccount},${r.totalSalary}`).join('\n');
