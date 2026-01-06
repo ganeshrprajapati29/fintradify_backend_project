@@ -69,7 +69,7 @@ router.post('/generate', auth, async (req, res) => {
     const html = `
       <div style="font-family: 'Times New Roman', serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; background-color: #f9f9f9;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <img src="https://res.cloudinary.com/your-cloud-name/image/upload/v1234567890/logoo.png" alt="Fintradify Logo" style="max-width: 150px; height: auto;">
+          <img src="https://i.ibb.co/n8Yy967T/Whats-App-Image-2025-06-16-at-16-09-13-951ea81f.png" alt="Fintradify Logo" style="max-width: 150px; height: auto;">
           <h2 style="color: #1e3a8a; margin: 10px 0; font-size: 24px;">FINTRADIFY</h2>
           <p style="color: #666; font-size: 14px; margin: 5px 0;">Office No. 105, C6, Noida Sector 7, Uttar Pradesh - 201301</p>
           <p style="color: #666; font-size: 14px; margin: 5px 0;">Phone: +91 78360 09907 | Email: hr@fintradify.com</p>
@@ -192,7 +192,7 @@ router.post('/send-email', auth, async (req, res) => {
     const html = `
       <div style="font-family: 'Times New Roman', serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; background-color: #f9f9f9;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <img src="https://res.cloudinary.com/your-cloud-name/image/upload/v1234567890/logoo.png" alt="Fintradify Logo" style="max-width: 150px; height: auto;">
+          <img src="https://i.ibb.co/n8Yy967T/Whats-App-Image-2025-06-16-at-16-09-13-951ea81f.png" alt="Fintradify Logo" style="max-width: 150px; height: auto;">
           <h2 style="color: #1e3a8a; margin: 10px 0; font-size: 24px;">FINTRADIFY</h2>
           <p style="color: #666; font-size: 14px; margin: 5px 0;">Office No. 105, C6, Noida Sector 7, Uttar Pradesh - 201301</p>
           <p style="color: #666; font-size: 14px; margin: 5px 0;">Phone: +91 78360 09907 | Email: hr@fintradify.com</p>
