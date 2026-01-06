@@ -5,6 +5,13 @@ const Attendance = require('../models/Attendance');
 const Task = require('../models/Task');
 const auth = require('../middleware/auth');
 
+function calculateHours(att) {
+  if (!att.punchIn) return 0;
+  const end = att.punchOut || new Date();
+  const totalTime = end - att.punchIn;
+  return (totalTime - att.totalPausedDuration) / (1000 * 60 * 60);
+}
+
 router.get('/', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
   try {
@@ -31,9 +38,7 @@ router.get('/', auth, async (req, res) => {
     // Create a map of employee IDs to their attendance data
     const attendanceMap = {};
     todaysAttendance.forEach(att => {
-      const hoursWorked = att.punchOut && att.punchIn
-        ? ((new Date(att.punchOut) - new Date(att.punchIn)) / 1000 / 60 / 60).toFixed(2)
-        : 0;
+      const hoursWorked = calculateHours(att).toFixed(2);
       attendanceMap[att.employee._id.toString()] = {
         isActive: true,
         hoursWorked: parseFloat(hoursWorked),

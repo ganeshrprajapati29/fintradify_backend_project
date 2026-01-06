@@ -8,6 +8,13 @@ const auth = require('../middleware/auth');
 
 const moment = require('moment-timezone');
 
+function calculateHours(att) {
+  if (!att.punchIn) return 0;
+  const end = att.punchOut || new Date();
+  const totalTime = end - att.punchIn;
+  return (totalTime - att.totalPausedDuration) / (1000 * 60 * 60);
+}
+
 /**
  * Punch In / Out
  */
@@ -32,6 +39,7 @@ router.post('/punch', auth, async (req, res) => {
         employee: req.user.id,
         date: new Date(),
         punchIn: new Date(),
+        timerStatus: 'active',
       });
       await attendance.save();
       return res.json({ message: 'Punch-in recorded', attendance });
@@ -140,13 +148,7 @@ router.get('/overview', auth, async (req, res) => {
       const date = new Date(att.date).toISOString().split('T')[0];
       if (!acc[date]) acc[date] = [];
 
-      const hoursWorked =
-        att.punchOut && att.punchIn
-          ? (
-              (new Date(att.punchOut) - new Date(att.punchIn)) /
-              1000 / 60 / 60
-            ).toFixed(2)
-          : '0.00';
+      const hoursWorked = calculateHours(att).toFixed(2);
 
       acc[date].push({
         employeeId: att.employee?.employeeId || 'N/A',
@@ -213,9 +215,7 @@ router.get('/download', auth, async (req, res) => {
     }).lean();
 
     const records = validAttendances.map(att => {
-      const hoursWorked = att.punchOut && att.punchIn
-        ? ((new Date(att.punchOut) - new Date(att.punchIn)) / 1000 / 60 / 60).toFixed(2)
-        : '0.00';
+      const hoursWorked = calculateHours(att).toFixed(2);
       const dateMonth = new Date(att.date).toISOString().slice(0, 7);
 
       // Find salary slip for this employee and month
@@ -286,9 +286,7 @@ router.get('/download/my-attendance', auth, async (req, res) => {
     }).lean();
 
     const records = attendances.map(att => {
-      const hoursWorked = att.punchOut && att.punchIn
-        ? ((new Date(att.punchOut) - new Date(att.punchIn)) / 1000 / 60 / 60).toFixed(2)
-        : '0.00';
+      const hoursWorked = calculateHours(att).toFixed(2);
       const dateMonth = new Date(att.date).toISOString().slice(0, 7);
 
       const salarySlip = salarySlips.find(slip => slip.month === dateMonth);
@@ -546,6 +544,66 @@ router.get('/rejected', auth, async (req, res) => {
   } catch (err) {
     console.error('Fetch rejected attendance error:', err);
     res.status(500).json({ message: 'Server error while fetching rejected attendance' });
+  }
+});
+
+/**
+ * Admin: Pause Timer for Attendance
+ */
+router.put('/admin/pause/:id', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  try {
+    const attendance = await Attendance.findById(req.params.id);
+    if (!attendance) return res.status(404).json({ message: 'Attendance record not found' });
+    if (attendance.timerStatus !== 'active') return res.status(400).json({ message: 'Timer is not active' });
+
+    attendance.timerStatus = 'paused';
+    attendance.pausedAt = new Date();
+    await attendance.save();
+    res.json({ message: 'Timer paused', attendance });
+  } catch (err) {
+    console.error('Pause timer error:', err);
+    res.status(500).json({ message: 'Server error while pausing timer' });
+  }
+});
+
+/**
+ * Admin: Resume Timer for Attendance
+ */
+router.put('/admin/resume/:id', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  try {
+    const attendance = await Attendance.findById(req.params.id);
+    if (!attendance) return res.status(404).json({ message: 'Attendance record not found' });
+    if (attendance.timerStatus !== 'paused') return res.status(400).json({ message: 'Timer is not paused' });
+
+    const now = new Date();
+    const pausedDuration = now - attendance.pausedAt;
+    attendance.totalPausedDuration += pausedDuration;
+    attendance.timerStatus = 'active';
+    attendance.pausedAt = null;
+    await attendance.save();
+    res.json({ message: 'Timer resumed', attendance });
+  } catch (err) {
+    console.error('Resume timer error:', err);
+    res.status(500).json({ message: 'Server error while resuming timer' });
+  }
+});
+
+/**
+ * Admin: Get Active Attendances (punched in, not punched out)
+ */
+router.get('/active', auth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  try {
+    const activeAttendances = await Attendance.find({
+      punchIn: { $ne: null },
+      punchOut: null
+    }).populate('employee', 'employeeId name').sort({ punchIn: -1 });
+    res.json(activeAttendances);
+  } catch (err) {
+    console.error('Fetch active attendances error:', err);
+    res.status(500).json({ message: 'Server error while fetching active attendances' });
   }
 });
 

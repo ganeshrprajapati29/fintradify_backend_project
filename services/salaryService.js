@@ -4,6 +4,13 @@ const SalarySlip = require('../models/SalarySlip');
 const { sendEmail } = require('../utils/sendEmail');
 const { generateSalarySlipPDF } = require('../utils/generatePDF');
 
+function calculateHours(att) {
+  if (!att.punchIn) return 0;
+  const end = att.punchOut || new Date();
+  const totalTime = end - att.punchIn;
+  return (totalTime - att.totalPausedDuration) / (1000 * 60 * 60);
+}
+
 async function generateMonthlySalarySlips(month, year) {
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0);
@@ -11,19 +18,22 @@ async function generateMonthlySalarySlips(month, year) {
   const employees = await Employee.find();
 
   for (const employee of employees) {
-    // Count attendance days
-    const attendanceCount = await Attendance.countDocuments({
+    // Calculate total hours worked
+    const attendances = await Attendance.find({
       employee: employee._id,
       date: { $gte: startDate, $lte: endDate },
       punchIn: { $exists: true },
       punchOut: { $exists: true }
     });
+    const totalHours = attendances.reduce((sum, att) => sum + calculateHours(att), 0);
+    const attendanceCount = attendances.length; // present days
 
     // Salary calculation
     const totalDays = 30;
+    const standardHoursPerDay = 8;
     const monthlySalary = employee.salary;
-    const dailySalary = monthlySalary / totalDays;
-    const proratedSalary = attendanceCount * dailySalary;
+    const hourlySalary = monthlySalary / (totalDays * standardHoursPerDay);
+    const proratedSalary = totalHours * hourlySalary;
 
     // Earnings
     const basicPay = Math.round(proratedSalary * 0.35);
