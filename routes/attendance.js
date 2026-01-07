@@ -39,15 +39,14 @@ const MAX_DISTANCE = 100; // 100 meters
 router.post('/punch', auth, async (req, res) => {
   const { type, location, address } = req.body;
   try {
-    // Check location
-    if (!location || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
-      return res.status(400).json({ message: 'Location (latitude and longitude) is required' });
+    // Check location if provided
+    if (location && typeof location.lat === 'number' && typeof location.lng === 'number') {
+      const distance = calculateDistance(location.lat, location.lng, OFFICE_LAT, OFFICE_LNG);
+      if (distance > MAX_DISTANCE) {
+        return res.status(403).json({ message: `You must be within ${MAX_DISTANCE} meters of the office to punch ${type}. Current distance: ${distance.toFixed(2)} meters.` });
+      }
     }
-
-    const distance = calculateDistance(location.lat, location.lng, OFFICE_LAT, OFFICE_LNG);
-    if (distance > MAX_DISTANCE) {
-      return res.status(403).json({ message: `You must be within ${MAX_DISTANCE} meters of the office to punch ${type}. Current distance: ${distance.toFixed(2)} meters.` });
-    }
+    // If no location provided, allow punch without distance check
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
