@@ -13,6 +13,7 @@ async function calculateLeaveBalances(employeeId) {
     // Accrue 1 full day and 1 half day per month if not taken
     // For simplicity, assume monthly accrual
     // In real scenario, this should be called monthly
+    if (!employee.joiningDate) employee.joiningDate = new Date();
     employee.paidLeaveBalance += 1;
     employee.halfDayLeaveBalance += 1;
     await employee.save();
@@ -174,6 +175,7 @@ async function accrueMonthlyLeaves(employeeId) {
     // Accrue 1.5 days per month (1 full + 0.5 half day)
     const monthsToAccrue = currentMonth - lastAccrualMonth;
     if (monthsToAccrue > 0) {
+      if (!employee.joiningDate) employee.joiningDate = new Date();
       employee.paidLeaveBalance += monthsToAccrue * 1.5;
       employee.lastLeaveAccrual = now;
       await employee.save();

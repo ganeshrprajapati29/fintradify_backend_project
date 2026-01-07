@@ -209,7 +209,7 @@ router.put('/:id', auth, async (req, res) => {
     employee.bankAccount = bankAccount !== undefined ? bankAccount : employee.bankAccount;
     employee.bankName = bankName !== undefined ? bankName : employee.bankName;
     employee.profilePhoto = profilePhoto !== undefined ? profilePhoto : employee.profilePhoto;
-    if (joiningDate) employee.joiningDate = new Date(joiningDate);
+    employee.joiningDate = joiningDate ? new Date(joiningDate) : (employee.joiningDate || new Date());
     if (password) employee.password = await bcrypt.hash(password, 10);
     if (salary !== undefined) employee.salary = parseFloat(salary) || 0;
 
@@ -374,6 +374,7 @@ router.put('/:id/terminate', auth, async (req, res) => {
     const employee = await Employee.findById(req.params.id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
+    if (!employee.joiningDate) employee.joiningDate = new Date();
     employee.status = 'terminated';
     await employee.save();
 
@@ -391,6 +392,7 @@ router.put('/:id/enable', auth, async (req, res) => {
     const employee = await Employee.findById(req.params.id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
 
+    if (!employee.joiningDate) employee.joiningDate = new Date();
     employee.status = 'active';
     await employee.save();
 

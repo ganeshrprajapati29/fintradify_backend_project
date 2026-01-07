@@ -26,7 +26,7 @@ router.get('/', auth, async (req, res) => {
     // Get today's tasks
     const todaysTasks = await Task.find({
       createdAt: { $gte: todayStart, $lte: todayEnd }
-    }).populate('assignedTo', 'name');
+    }).populate('employee', 'name');
 
     // Create a map of employee IDs to their attendance data
     const attendanceMap = {};
@@ -46,8 +46,8 @@ router.get('/', auth, async (req, res) => {
     // Create a map of employee IDs to their tasks
     const taskMap = {};
     todaysTasks.forEach(task => {
-      if (task.assignedTo) {
-        const empId = task.assignedTo._id.toString();
+      if (task.employee) {
+        const empId = task.employee._id.toString();
         if (!taskMap[empId]) taskMap[empId] = [];
         taskMap[empId].push({
           title: task.title,
