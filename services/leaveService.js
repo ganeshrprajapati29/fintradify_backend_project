@@ -69,7 +69,7 @@ async function getAllEmployeesLeaveData() {
     let monthsWorked = 0;
     let isEligible = false;
     let eligibilityDateStr = '';
-    let remainingLeaves = emp.paidLeaveBalance - (emp.usedPaidLeaves || 0);
+    let remainingLeaves = emp.paidLeaveBalance;
 
     if (!isNaN(joinDate.getTime())) {
       monthsWorked = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
@@ -110,7 +110,7 @@ async function getEmployeeLeaveData(employeeId) {
   let monthsWorked = 0;
   let isEligible = false;
   let eligibilityDateStr = '';
-  let remainingLeaves = emp.paidLeaveBalance - (emp.usedPaidLeaves || 0);
+  let remainingLeaves = emp.paidLeaveBalance;
 
   if (!isNaN(joinDate.getTime())) {
     monthsWorked = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
@@ -161,8 +161,8 @@ async function accrueMonthlyLeaves(employeeId) {
     // Effective accrual start is the maximum of eligibility date and November 2025
     const effectiveStart = eligibilityDate > accrualStartDate ? eligibilityDate : accrualStartDate;
 
-    // Set lastLeaveAccrual if not set
-    if (!employee.lastLeaveAccrual) {
+    // Set lastLeaveAccrual if not set or if it's before effectiveStart
+    if (!employee.lastLeaveAccrual || new Date(employee.lastLeaveAccrual) < effectiveStart) {
       employee.lastLeaveAccrual = effectiveStart;
     }
 
