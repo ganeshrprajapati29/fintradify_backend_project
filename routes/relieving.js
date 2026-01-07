@@ -115,9 +115,12 @@ router.post('/generate', auth, async (req, res) => {
     await sendEmail(employee.email, subject, html);
 
     res.json({
+      success: true,
       message: 'Relieving letter generated and emailed successfully',
-      letterUrl: uploadResult.secure_url,
-      relievingLetter
+      data: {
+        letterUrl: uploadResult.secure_url,
+        relievingLetter
+      }
     });
 
   } catch (error) {
@@ -128,25 +131,25 @@ router.post('/generate', auth, async (req, res) => {
 
 // GET /relieving - Get all relieving letters
 router.get('/', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Unauthorized' });
 
   try {
     const letters = await RelievingLetter.find().populate('employee', 'employeeId name email');
-    res.json(letters);
+    res.json({ success: true, data: letters });
   } catch (error) {
     console.error('Fetch relieving letters error:', error);
-    res.status(500).json({ message: 'Server error while fetching relieving letters' });
+    res.status(500).json({ success: false, message: 'Server error while fetching relieving letters' });
   }
 });
 
 // DELETE /relieving/:id - Delete a relieving letter
 router.delete('/:id', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Unauthorized' });
 
   try {
     const letter = await RelievingLetter.findById(req.params.id);
     if (!letter) {
-      return res.status(404).json({ message: 'Relieving letter not found' });
+      return res.status(404).json({ success: false, message: 'Relieving letter not found' });
     }
 
     // Delete from Cloudinary if exists
@@ -161,31 +164,31 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     await RelievingLetter.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Relieving letter deleted successfully' });
+    res.json({ success: true, message: 'Relieving letter deleted successfully' });
   } catch (error) {
     console.error('Delete relieving letter error:', error);
-    res.status(500).json({ message: 'Server error while deleting relieving letter' });
+    res.status(500).json({ success: false, message: 'Server error while deleting relieving letter' });
   }
 });
 
 // POST /relieving/send-email - Send custom email for relieving letter
 router.post('/send-email', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Unauthorized' });
 
   const { letterId, subject, content } = req.body;
 
   if (!letterId || !subject || !content) {
-    return res.status(400).json({ message: 'Letter ID, subject, and content are required' });
+    return res.status(400).json({ success: false, message: 'Letter ID, subject, and content are required' });
   }
 
   try {
     const letter = await RelievingLetter.findById(letterId).populate('employee');
     if (!letter) {
-      return res.status(404).json({ message: 'Relieving letter not found' });
+      return res.status(404).json({ success: false, message: 'Relieving letter not found' });
     }
 
     if (!letter.employee) {
-      return res.status(404).json({ message: 'Employee not found for this letter' });
+      return res.status(404).json({ success: false, message: 'Employee not found for this letter' });
     }
 
     // Send custom email
@@ -211,10 +214,10 @@ router.post('/send-email', auth, async (req, res) => {
 
     await sendEmail(letter.employee.email, subject, html);
 
-    res.json({ message: 'Custom email sent successfully' });
+    res.json({ success: true, message: 'Custom email sent successfully' });
   } catch (error) {
     console.error('Send custom email error:', error);
-    res.status(500).json({ message: 'Server error while sending custom email' });
+    res.status(500).json({ success: false, message: 'Server error while sending custom email' });
   }
 });
 

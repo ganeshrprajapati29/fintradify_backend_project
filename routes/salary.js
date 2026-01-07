@@ -158,12 +158,13 @@ Fintradify HR Team
       salarySlip.status = 'sent';
       await salarySlip.save();
 
-      res.json(salarySlip);
+      res.json({ success: true, data: salarySlip });
     } catch (emailErr) {
       console.error('Email sending failed:', emailErr);
       res.status(207).json({
+        success: true,
         message: 'Salary slip generated but email sending failed',
-        salarySlip
+        data: salarySlip
       });
     }
 
@@ -216,10 +217,10 @@ router.get('/my-slips', auth, async (req, res) => {
       .find({ employee: req.user.id })
       .populate('employee');
 
-    res.json(slips);
+    res.json({ success: true, data: slips });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
@@ -229,14 +230,14 @@ router.get('/my-slips', auth, async (req, res) => {
  */
 router.get('/', auth, async (req, res) => {
   if (req.user.role !== 'admin')
-    return res.status(403).json({ message: 'Unauthorized' });
+    return res.status(403).json({ success: false, message: 'Unauthorized' });
 
   try {
     const slips = await SalarySlip.find().populate('employee');
-    res.json(slips);
+    res.json({ success: true, data: slips });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 

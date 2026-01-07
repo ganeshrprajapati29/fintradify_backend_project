@@ -27,7 +27,7 @@ router.get('/', auth, async (req, res) => {
       }
     ];
 
-    res.json(alerts);
+    res.json({ success: true, data: alerts });
   } catch (err) {
     console.error('Error fetching alerts:', err);
     res.status(500).json({ message: 'Server error while fetching alerts' });

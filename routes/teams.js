@@ -90,7 +90,7 @@ router.get('/', auth, async (req, res) => {
       employees: teams[teamName]
     }));
 
-    res.json(teamsArray);
+    res.json({ success: true, data: teamsArray });
   } catch (err) {
     console.error('Fetch teams error:', err);
     res.status(500).json({ message: 'Server error while fetching teams' });

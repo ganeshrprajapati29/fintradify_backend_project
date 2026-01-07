@@ -79,7 +79,7 @@ router.post('/generate', auth, async (req, res) => {
     const html = `
       <div style="font-family: 'Times New Roman', serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; background-color: #f9f9f9;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <img src="https://res.cloudinary.com/your-cloud-name/image/upload/v1234567890/logoo.png" alt="Fintradify Logo" style="max-width: 150px; height: auto;">
+          <img src="https://i.ibb.co/n8Yy967T/Whats-App-Image-2025-06-16-at-16-09-13-951ea81f.png" alt="Fintradify Logo" style="max-width: 150px; height: auto;">
           <h2 style="color: #1e3a8a; margin: 10px 0; font-size: 24px;">FINTRADIFY</h2>
           <p style="color: #666; font-size: 14px; margin: 5px 0;">Office No. 105, C6, Noida Sector 7, Uttar Pradesh - 201301</p>
           <p style="color: #666; font-size: 14px; margin: 5px 0;">Phone: +91 78360 09907 | Email: hr@fintradify.com</p>
@@ -111,7 +111,7 @@ router.post('/generate', auth, async (req, res) => {
           <div style="border-top: 2px solid #1e3a8a; margin-top: 30px; padding-top: 20px;">
             <p style="font-size: 16px; line-height: 1.6; margin-bottom: 5px;"><strong>Best Regards,</strong></p>
             <p style="font-size: 16px; line-height: 1.6; margin-bottom: 5px;">Fintradify HR Team</p>
-            <p style="font-size: 14px; color: #666; margin-bottom: 5px;">Human Resources Department</p>
+            <p style="font-size: 14px; color: #666; margin-bottom: 5px;">HR Department</p>
             <p style="font-size: 14px; color: #666; margin-bottom: 0;">Email: hr@fintradify.com | Phone: +91 78360 09907</p>
           </div>
         </div>
@@ -126,9 +126,12 @@ router.post('/generate', auth, async (req, res) => {
     await sendEmail(employee.email, subject, html);
 
     res.json({
+      success: true,
       message: 'Offer letter generated and emailed successfully',
-      letterUrl: uploadResult.secure_url,
-      offerLetter
+      data: {
+        letterUrl: uploadResult.secure_url,
+        offerLetter
+      }
     });
 
   } catch (error) {
@@ -139,25 +142,25 @@ router.post('/generate', auth, async (req, res) => {
 
 // GET /offer - Get all offer letters
 router.get('/', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Unauthorized' });
 
   try {
     const letters = await OfferLetter.find().populate('employee', 'employeeId name email');
-    res.json(letters);
+    res.json({ success: true, data: letters });
   } catch (error) {
     console.error('Fetch offer letters error:', error);
-    res.status(500).json({ message: 'Server error while fetching offer letters' });
+    res.status(500).json({ success: false, message: 'Server error while fetching offer letters' });
   }
 });
 
 // DELETE /offer/:id - Delete an offer letter
 router.delete('/:id', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Unauthorized' });
 
   try {
     const letter = await OfferLetter.findById(req.params.id);
     if (!letter) {
-      return res.status(404).json({ message: 'Offer letter not found' });
+      return res.status(404).json({ success: false, message: 'Offer letter not found' });
     }
 
     // Delete from Cloudinary if exists
@@ -172,23 +175,23 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     await OfferLetter.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Offer letter deleted successfully' });
+    res.json({ success: true, message: 'Offer letter deleted successfully' });
   } catch (error) {
     console.error('Delete offer letter error:', error);
-    res.status(500).json({ message: 'Server error while deleting offer letter' });
+    res.status(500).json({ success: false, message: 'Server error while deleting offer letter' });
   }
 });
 
 // PUT /offer/:id/status - Update offer letter status
 router.put('/:id/status', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Unauthorized' });
 
   const { status, rejectionReason } = req.body;
 
   try {
     const letter = await OfferLetter.findById(req.params.id);
     if (!letter) {
-      return res.status(404).json({ message: 'Offer letter not found' });
+      return res.status(404).json({ success: false, message: 'Offer letter not found' });
     }
 
     letter.status = status;
@@ -200,10 +203,10 @@ router.put('/:id/status', auth, async (req, res) => {
     }
 
     await letter.save();
-    res.json({ message: 'Offer letter status updated successfully', letter });
+    res.json({ success: true, message: 'Offer letter status updated successfully', data: letter });
   } catch (error) {
     console.error('Update offer letter status error:', error);
-    res.status(500).json({ message: 'Server error while updating offer letter status' });
+    res.status(500).json({ success: false, message: 'Server error while updating offer letter status' });
   }
 });
 

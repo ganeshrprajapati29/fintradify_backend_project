@@ -67,7 +67,7 @@ router.get('/metrics', auth, async (req, res) => {
       rejectedLeaves
     };
 
-    res.json(metrics);
+    res.json({ success: true, data: metrics });
   } catch (err) {
     console.error('Error fetching dashboard metrics:', err);
     res.status(500).json({ message: 'Server error while fetching dashboard metrics' });

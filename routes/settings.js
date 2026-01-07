@@ -20,10 +20,10 @@ router.get('/', auth, async (req, res) => {
       settings = new Settings();
       await settings.save();
     }
-    res.json(settings);
+    res.json({ success: true, data: settings });
   } catch (err) {
     console.error('Fetch settings error:', err);
-    res.status(500).json({ message: 'Server error while fetching settings' });
+    res.status(500).json({ success: false, message: 'Server error while fetching settings' });
   }
 });
 
@@ -31,7 +31,7 @@ router.get('/', auth, async (req, res) => {
  * Update Settings (Admin only)
  */
 router.put('/', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Unauthorized' });
 
   try {
     const updateData = { ...req.body, updatedAt: new Date() };
@@ -40,10 +40,10 @@ router.put('/', auth, async (req, res) => {
       updateData,
       { new: true, upsert: true }
     );
-    res.json(settings);
+    res.json({ success: true, data: settings });
   } catch (err) {
     console.error('Update settings error:', err);
-    res.status(500).json({ message: 'Server error while updating settings' });
+    res.status(500).json({ success: false, message: 'Server error while updating settings' });
   }
 });
 
@@ -93,7 +93,7 @@ router.get('/employee', auth, async (req, res) => {
   try {
     const settings = await Settings.findOne().select('employeeSettings timezone workStartTime workEndTime workingDays currency dateFormat timeFormat language theme');
     if (!settings) {
-      return res.json({
+      return res.json({ success: true, data: {
         employeeSettings: {
           canRequestLeave: true,
           canViewSalary: true,
@@ -109,12 +109,12 @@ router.get('/employee', auth, async (req, res) => {
         timeFormat: '12h',
         language: 'en',
         theme: 'light'
-      });
+      }});
     }
-    res.json(settings);
+    res.json({ success: true, data: settings });
   } catch (err) {
     console.error('Fetch employee settings error:', err);
-    res.status(500).json({ message: 'Server error while fetching employee settings' });
+    res.status(500).json({ success: false, message: 'Server error while fetching employee settings' });
   }
 });
 

@@ -12,10 +12,10 @@ router.get('/my-tasks', auth, async (req, res) => {
       .populate('employee', 'employeeId name email')
       .sort({ createdAt: -1 });
     console.log('Tasks fetched:', tasks);
-    res.json(tasks || []);
+    res.json({ success: true, data: tasks || [] });
   } catch (err) {
     console.error('Fetch tasks error:', err);
-    res.status(500).json({ message: 'Server error while fetching tasks' });
+    res.status(500).json({ success: false, message: 'Server error while fetching tasks' });
   }
 });
 
@@ -48,28 +48,28 @@ router.post('/', auth, async (req, res) => {
       await sendEmail(employee.email, 'New Task Assigned', `Task: ${title}\nDescription: ${description}`);
     }
     console.log('Task created:', populatedTask);
-    res.json(populatedTask);
+    res.json({ success: true, data: populatedTask });
   } catch (err) {
     console.error('Create task error:', err);
-    res.status(500).json({ message: 'Server error while creating task' });
+    res.status(500).json({ success: false, message: 'Server error while creating task' });
   }
 });
 
 router.get('/', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Unauthorized' });
   try {
     const tasks = await Task.find()
       .populate('employee', 'employeeId name email')
       .sort({ createdAt: -1 });
-    res.json(tasks || []);
+    res.json({ success: true, data: tasks || [] });
   } catch (err) {
     console.error('Fetch all tasks error:', err);
-    res.status(500).json({ message: 'Server error while fetching all tasks' });
+    res.status(500).json({ success: false, message: 'Server error while fetching all tasks' });
   }
 });
 
 router.get('/all-tasks', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  if (req.user.role !== 'admin') return res.status(403).json({ success: false, message: 'Unauthorized' });
   try {
     const tasks = await Task.find()
       .populate('employee', 'employeeId name email')
@@ -80,10 +80,10 @@ router.get('/all-tasks', auth, async (req, res) => {
       if (!tasksByDate[date]) tasksByDate[date] = [];
       tasksByDate[date].push(task);
     });
-    res.json(tasksByDate);
+    res.json({ success: true, data: tasksByDate });
   } catch (err) {
     console.error('Fetch all tasks grouped error:', err);
-    res.status(500).json({ message: 'Server error while fetching all tasks' });
+    res.status(500).json({ success: false, message: 'Server error while fetching all tasks' });
   }
 });
 
@@ -93,11 +93,11 @@ router.put('/:id', auth, async (req, res) => {
     const task = await Task.findById(req.params.id);
     if (!task) {
       console.error('Task not found:', req.params.id);
-      return res.status(404).json({ message: 'Task not found' });
+      return res.status(404).json({ success: false, message: 'Task not found' });
     }
     if (req.user.role !== 'admin' && task.employee.toString() !== req.user.id) {
       console.error('Unauthorized task update by user:', req.user.id);
-      return res.status(403).json({ message: 'Unauthorized' });
+      return res.status(403).json({ success: false, message: 'Unauthorized' });
     }
 
     task.status = status || task.status;
@@ -105,10 +105,10 @@ router.put('/:id', auth, async (req, res) => {
     const populatedTask = await Task.findById(task._id)
       .populate('employee', 'employeeId name email');
     console.log('Task updated:', populatedTask);
-    res.json(populatedTask);
+    res.json({ success: true, data: populatedTask });
   } catch (err) {
     console.error('Update task error:', err);
-    res.status(500).json({ message: 'Server error while updating task' });
+    res.status(500).json({ success: false, message: 'Server error while updating task' });
   }
 });
 

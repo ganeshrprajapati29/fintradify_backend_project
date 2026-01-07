@@ -85,7 +85,7 @@ router.get('/', auth, async (req, res) => {
       };
     });
 
-    res.json(trackingData);
+    res.json({ success: true, data: trackingData });
   } catch (err) {
     console.error('Fetch tracking error:', err);
     res.status(500).json({ message: 'Server error while fetching tracking data' });

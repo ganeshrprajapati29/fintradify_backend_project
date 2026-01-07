@@ -20,7 +20,7 @@ router.get('/', auth, async (req, res) => {
       .populate('approvedBy', 'name')
       .sort({ createdAt: -1 });
 
-    res.json(reimbursements);
+    res.json({ success: true, data: reimbursements });
   } catch (err) {
     console.error('Fetch reimbursements error:', err);
     res.status(500).json({ message: 'Server error while fetching reimbursements' });
@@ -34,7 +34,7 @@ router.get('/my', auth, async (req, res) => {
       .populate('approvedBy', 'name')
       .sort({ createdAt: -1 });
 
-    res.json(reimbursements);
+    res.json({ success: true, data: reimbursements });
   } catch (err) {
     console.error('Fetch my reimbursements error:', err);
     res.status(500).json({ message: 'Server error while fetching reimbursements' });
@@ -101,8 +101,8 @@ router.post('/', auth, upload.array('attachments', 5), async (req, res) => {
       .populate('employee', 'name email employeeId');
 
     res.status(201).json({
-      message: 'Reimbursement request submitted successfully',
-      reimbursement: populatedReimbursement
+      success: true,
+      data: populatedReimbursement
     });
   } catch (err) {
     console.error('Create reimbursement error:', err);
@@ -141,8 +141,8 @@ router.put('/:id/status', auth, async (req, res) => {
       .populate('approvedBy', 'name');
 
     res.json({
-      message: `Reimbursement ${status.toLowerCase()} successfully`,
-      reimbursement: updatedReimbursement
+      success: true,
+      data: updatedReimbursement
     });
   } catch (err) {
     console.error('Update reimbursement status error:', err);
@@ -181,7 +181,7 @@ router.delete('/:id', auth, async (req, res) => {
     }
 
     await reimbursement.remove();
-    res.json({ message: 'Reimbursement deleted successfully' });
+    res.json({ success: true, message: 'Reimbursement deleted successfully' });
   } catch (err) {
     console.error('Delete reimbursement error:', err);
     res.status(500).json({ message: 'Server error while deleting reimbursement' });
@@ -221,8 +221,11 @@ router.get('/stats', auth, async (req, res) => {
     ]);
 
     res.json({
-      overall: stats,
-      monthly: monthlyStats
+      success: true,
+      data: {
+        overall: stats,
+        monthly: monthlyStats
+      }
     });
   } catch (err) {
     console.error('Get reimbursement stats error:', err);
