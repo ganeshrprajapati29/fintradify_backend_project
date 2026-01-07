@@ -60,8 +60,8 @@ router.put('/:id', auth, async (req, res) => {
       const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
 
       if (leave.type === 'paid') {
-        // Increment used paid leaves
-        await Employee.findByIdAndUpdate(leave.employee._id, { $inc: { usedPaidLeaves: days } });
+        // Increment used paid leaves and decrement balance
+        await Employee.findByIdAndUpdate(leave.employee._id, { $inc: { usedPaidLeaves: days, paidLeaveBalance: -days } });
       }
     }
 
@@ -182,9 +182,10 @@ router.get('/my-balances', auth, async (req, res) => {
       });
     }
 
-    // Return the actual stored balance (already accrued)
+    // Return the remaining balance (accrued - used)
+    const remaining = employee.paidLeaveBalance - (employee.usedPaidLeaves || 0);
     res.json({
-      paidLeaveBalance: employee.paidLeaveBalance,
+      paidLeaveBalance: remaining,
       unpaidLeaveBalance: employee.unpaidLeaveBalance,
       halfDayLeaveBalance: employee.halfDayLeaveBalance,
     });

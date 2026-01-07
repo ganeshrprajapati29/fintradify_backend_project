@@ -69,7 +69,7 @@ async function getAllEmployeesLeaveData() {
     let monthsWorked = 0;
     let isEligible = false;
     let eligibilityDateStr = '';
-    let remainingLeaves = emp.paidLeaveBalance;
+    let remainingLeaves = emp.paidLeaveBalance - (emp.usedPaidLeaves || 0);
 
     if (!isNaN(joinDate.getTime())) {
       monthsWorked = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
@@ -110,7 +110,7 @@ async function getEmployeeLeaveData(employeeId) {
   let monthsWorked = 0;
   let isEligible = false;
   let eligibilityDateStr = '';
-  let remainingLeaves = emp.paidLeaveBalance;
+  let remainingLeaves = emp.paidLeaveBalance - (emp.usedPaidLeaves || 0);
 
   if (!isNaN(joinDate.getTime())) {
     monthsWorked = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
