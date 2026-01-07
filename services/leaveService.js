@@ -145,13 +145,29 @@ async function accrueMonthlyLeaves(employeeId) {
 
     const now = new Date();
     const joinDate = new Date(employee.joiningDate);
+    const accrualStartDate = new Date('2025-11-01');
+
+    // No accrual before November 2025
+    if (now < accrualStartDate) return;
 
     // Check if employee is eligible (6 months or more)
     const monthsWorked = (now.getFullYear() - joinDate.getFullYear()) * 12 + (now.getMonth() - joinDate.getMonth());
     if (monthsWorked < 6) return;
 
+    // Calculate eligibility date
+    const eligibilityDate = new Date(joinDate);
+    eligibilityDate.setMonth(eligibilityDate.getMonth() + 6);
+
+    // Effective accrual start is the maximum of eligibility date and November 2025
+    const effectiveStart = eligibilityDate > accrualStartDate ? eligibilityDate : accrualStartDate;
+
+    // Set lastLeaveAccrual if not set
+    if (!employee.lastLeaveAccrual) {
+      employee.lastLeaveAccrual = effectiveStart;
+    }
+
     // Check if we need to accrue leaves for this month
-    const lastAccrual = employee.lastLeaveAccrual ? new Date(employee.lastLeaveAccrual) : joinDate;
+    const lastAccrual = new Date(employee.lastLeaveAccrual);
     const currentMonth = now.getFullYear() * 12 + now.getMonth();
     const lastAccrualMonth = lastAccrual.getFullYear() * 12 + lastAccrual.getMonth();
 
