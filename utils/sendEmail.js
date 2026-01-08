@@ -16,7 +16,7 @@ const sendEmail = async (to, subject, message, attachments = []) => {
       from: `"FinTradify" <${process.env.EMAIL_USER}>`,
       to,
       subject,
-      // ✅ Automatically choose html if message contains tags, else send as plain text
+      // Automatically choose html if message contains tags, else send as plain text
       [message.includes('<') ? 'html' : 'text']: message,
       attachments,
     });
