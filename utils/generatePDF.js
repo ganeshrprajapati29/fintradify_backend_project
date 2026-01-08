@@ -911,7 +911,6 @@ const generateRelievingLetterPDF = async (employee, relievingLetter) => {
     }
   });
 };
-
 const generateOfferLetterPDF = async (employee, offerLetter) => {
   return new Promise((resolve, reject) => {
     try {
@@ -939,72 +938,95 @@ const generateOfferLetterPDF = async (employee, offerLetter) => {
       });
       doc.on('error', reject);
 
+      // ==================== HELPER FUNCTIONS ====================
+      const formatNumber = (num) => {
+        if (typeof num !== 'number' || isNaN(num)) return '0';
+        return new Intl.NumberFormat('en-IN').format(Math.round(num));
+      };
+
+      const formatCurrency = (num) => {
+        return `₹${formatNumber(num)}`;
+      };
+
+      const addNewPageIfNeeded = (requiredHeight) => {
+        const currentY = doc.y;
+        const pageHeight = doc.page.height;
+        const bottomMargin = 50;
+        
+        if (currentY + requiredHeight > pageHeight - bottomMargin) {
+          doc.addPage();
+          return 50; // Return new Y position after page break
+        }
+        return currentY;
+      };
+
       // ==================== PAGE 1: HEADER & EMPLOYEE DETAILS ====================
-      // Header
+      // Blue Header Background
       doc.rect(0, 0, doc.page.width, 100)
          .fill('#1e3a8a');
 
       // Company Logo
       const logoPath = path.join(__dirname, '../assets/logoo.png');
       if (fs.existsSync(logoPath)) {
-        doc.image(logoPath, 20, 15, { width: 50, height: 50 });
+        doc.image(logoPath, 50, 25, { width: 50, height: 50 });
       } else {
         doc.fillColor('#ffffff')
-           .fontSize(24)
+           .fontSize(32)
            .font('Helvetica-Bold')
-           .text('F', 40, 30);
+           .text('F', 60, 35);
       }
 
       // Company Info
       doc.fillColor('#ffffff')
          .fontSize(16)
          .font('Helvetica-Bold')
-         .text('FINTRADIFY PRIVATE LIMITED', 80, 20);
+         .text('FINTRADIFY PRIVATE LIMITED', 120, 30);
 
       doc.fontSize(8)
          .font('Helvetica')
-         .text('Office No. 105, C6, Noida Sector 7, Uttar Pradesh - 201301', 80, 38);
+         .text('Office No. 105, C6, Noida Sector 7, Uttar Pradesh - 201301', 120, 48);
 
-      doc.text('Phone: +91 78360 09907 | Email: hr@fintradify.com | Website: www.fintradify.com', 80, 50);
+      doc.text('Phone: +91 78360 09907 | Email: hr@fintradify.com | Website: www.fintradify.com', 120, 58);
 
       // Offer Letter Title
       doc.fillColor('#ffffff')
          .fontSize(20)
          .font('Helvetica-Bold')
-         .text('EMPLOYMENT OFFER LETTER', doc.page.width - 250, 20, { align: 'right', width: 230 });
+         .text('EMPLOYMENT OFFER LETTER', doc.page.width - 270, 30, { align: 'right', width: 220 });
 
       doc.fontSize(10)
-         .text(`Date: ${new Date().toLocaleDateString('en-IN')}`, doc.page.width - 250, 45, { align: 'right', width: 230 });
+         .text(`Date: ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`, 
+               doc.page.width - 270, 55, { align: 'right', width: 220 });
 
-      doc.text(`Reference: OFFER/${employee.employeeId || 'EMP'}/${new Date().getFullYear()}`, doc.page.width - 250, 60, { align: 'right', width: 230 });
+      doc.text(`Reference: OFFER/${employee.employeeId || 'EMP'}/${new Date().getFullYear()}`, 
+               doc.page.width - 270, 70, { align: 'right', width: 220 });
 
-      // ==================== EMPLOYEE DETAILS TABLE ====================
       let yPos = 120;
 
-      // Employee Details Header
+      // ==================== EMPLOYEE DETAILS SECTION ====================
       doc.fillColor('#1e293b')
          .fontSize(14)
          .font('Helvetica-Bold')
          .text('EMPLOYEE DETAILS', 50, yPos);
 
-      yPos += 20;
+      yPos += 25;
 
-      // Create employee details table
+      // Create employee details table with better spacing
       const tableTop = yPos;
       const tableWidth = doc.page.width - 100;
-      const rowHeight = 18;
+      const rowHeight = 20;
       const colWidth = tableWidth / 2;
 
-      // Table header
-      doc.rect(50, tableTop, colWidth, rowHeight).fill('#f0f4f8').stroke('#cbd5e1');
-      doc.rect(50 + colWidth, tableTop, colWidth, rowHeight).fill('#f0f4f8').stroke('#cbd5e1');
+      // Table header with background
+      doc.rect(50, tableTop, colWidth, rowHeight).fill('#1e3a8a').stroke('#1e3a8a');
+      doc.rect(50 + colWidth, tableTop, colWidth, rowHeight).fill('#1e3a8a').stroke('#1e3a8a');
 
-      doc.fillColor('#1e293b')
+      doc.fillColor('#ffffff')
          .fontSize(10)
          .font('Helvetica-Bold')
-         .text('Field', 60, tableTop + 5);
+         .text('FIELD', 60, tableTop + 6);
 
-      doc.text('Details', 60 + colWidth, tableTop + 5);
+      doc.text('DETAILS', 60 + colWidth, tableTop + 6);
 
       yPos += rowHeight;
 
@@ -1032,12 +1054,12 @@ const generateOfferLetterPDF = async (employee, offerLetter) => {
            .text(row[0], 60, yPos + 5);
 
         doc.font('Helvetica')
-           .text(row[1], 60 + colWidth, yPos + 5);
+           .text(row[1] || 'N/A', 60 + colWidth, yPos + 5);
 
         yPos += rowHeight;
       });
 
-      yPos += 20;
+      yPos += 30;
 
       // ==================== OFFER INTRODUCTION ====================
       doc.fillColor('#1e293b')
@@ -1049,432 +1071,348 @@ const generateOfferLetterPDF = async (employee, offerLetter) => {
 
       doc.fontSize(12)
          .font('Helvetica-Bold')
-         .text('Dear ' + (employee.name ? employee.name.split(' ')[0] : 'Candidate') + ',', 50, yPos);
-
-      yPos += 25;
-
-      doc.fontSize(11)
-         .font('Helvetica')
-         .text('We are delighted to extend a formal offer of employment to you for the position of', 50, yPos, { width: doc.page.width - 100 });
-
-      yPos += 15;
-
-      doc.font('Helvetica-Bold')
-         .text(offerLetter.position || 'Software Developer', 70, yPos);
-
-      yPos += 15;
-
-      doc.font('Helvetica')
-         .text('in the ' + (offerLetter.department || 'Technology') + ' Department at Fintradify Private Limited, a leading technology solutions provider.', 50, yPos, { width: doc.page.width - 100 });
-
-      yPos += 25;
-
-      doc.text('This offer represents our confidence in your abilities and our commitment to providing you with opportunities for professional growth and development within our organization.', 50, yPos, { width: doc.page.width - 100 });
-
-      yPos += 25;
-
-      // ==================== SALARY BREAKDOWN TABLE ====================
-      doc.font('Helvetica-Bold')
-         .text('COMPENSATION STRUCTURE', 50, yPos);
+         .text(`Dear ${employee.name ? employee.name.split(' ')[0] : 'Candidate'},`, 50, yPos);
 
       yPos += 20;
 
-      // Salary breakdown table
+      const introductionText = [
+        `We are delighted to extend a formal offer of employment to you for the position of ${offerLetter.position || 'Software Developer'} in the ${offerLetter.department || 'Technology'} Department at Fintradify Private Limited, a leading technology solutions provider.`,
+        `This offer represents our confidence in your abilities and our commitment to providing you with opportunities for professional growth and development within our organization.`,
+        `We believe that your skills and experience will be valuable assets to our team and contribute significantly to our continued success.`
+      ];
+
+      introductionText.forEach(paragraph => {
+        doc.fontSize(10.5)
+           .font('Helvetica')
+           .text(paragraph, 50, yPos, {
+             width: doc.page.width - 100,
+             align: 'justify'
+           });
+        yPos += 20;
+      });
+
+      yPos += 10;
+
+      // ==================== SALARY BREAKDOWN TABLE ====================
+      yPos = addNewPageIfNeeded(150);
+
+      doc.fillColor('#1e293b')
+         .fontSize(14)
+         .font('Helvetica-Bold')
+         .text('COMPENSATION STRUCTURE', 50, yPos);
+
+      yPos += 25;
+
+      // Calculate salary components
+      const totalSalary = offerLetter.salary || 30000;
+      const basicSalary = Math.round(totalSalary * 0.4);
+      const hra = Math.round(totalSalary * 0.4);
+      const conveyance = Math.round(totalSalary * 0.08);
+      const medical = Math.round(totalSalary * 0.06);
+      const calculatedTotal = basicSalary + hra + conveyance + medical;
+      const special = totalSalary - calculatedTotal;
+
+      const salaryComponents = [
+        { component: 'Basic Salary', monthly: basicSalary, annual: basicSalary * 12 },
+        { component: 'House Rent Allowance', monthly: hra, annual: hra * 12 },
+        { component: 'Conveyance Allowance', monthly: conveyance, annual: conveyance * 12 },
+        { component: 'Medical Allowance', monthly: medical, annual: medical * 12 },
+        { component: 'Special Allowance', monthly: special, annual: special * 12 },
+        { component: 'Total CTC', monthly: totalSalary, annual: totalSalary * 12 }
+      ];
+
+      // Salary table
       const salaryTableTop = yPos;
+      const salaryRowHeight = 20;
       const salaryColWidth = (doc.page.width - 100) / 3;
 
       // Table header
-      doc.rect(50, salaryTableTop, salaryColWidth, rowHeight).fill('#1e3a8a').stroke('#1e3a8a');
-      doc.rect(50 + salaryColWidth, salaryTableTop, salaryColWidth, rowHeight).fill('#1e3a8a').stroke('#1e3a8a');
-      doc.rect(50 + 2 * salaryColWidth, salaryTableTop, salaryColWidth, rowHeight).fill('#1e3a8a').stroke('#1e3a8a');
+      doc.rect(50, salaryTableTop, salaryColWidth, salaryRowHeight).fill('#1e3a8a').stroke('#1e3a8a');
+      doc.rect(50 + salaryColWidth, salaryTableTop, salaryColWidth, salaryRowHeight).fill('#1e3a8a').stroke('#1e3a8a');
+      doc.rect(50 + 2 * salaryColWidth, salaryTableTop, salaryColWidth, salaryRowHeight).fill('#1e3a8a').stroke('#1e3a8a');
 
       doc.fillColor('#ffffff')
          .fontSize(10)
          .font('Helvetica-Bold')
-         .text('Component', 60, salaryTableTop + 5);
+         .text('COMPONENT', 60, salaryTableTop + 6);
 
-      doc.text('Monthly (INR)', 60 + salaryColWidth, salaryTableTop + 5);
-      doc.text('Annual (INR)', 60 + 2 * salaryColWidth, salaryTableTop + 5);
+      doc.text('MONTHLY (INR)', 60 + salaryColWidth, salaryTableTop + 6, { align: 'right', width: salaryColWidth - 20 });
+      doc.text('ANNUAL (INR)', 60 + 2 * salaryColWidth, salaryTableTop + 6, { align: 'right', width: salaryColWidth - 20 });
 
-      yPos += rowHeight;
+      yPos += salaryRowHeight;
 
-      // Calculate salary components based on specified percentages - ensuring total adds up correctly
-      const totalSalary = offerLetter.salary || 30000;
-
-      // Calculate components with proper rounding to ensure total equals original salary
-      const basicSalary = Math.round(totalSalary * 0.4); // 40% Basic Pay
-      const hra = Math.round(totalSalary * 0.4); // 40% House Rent Allowance
-      const conveyance = Math.round(totalSalary * 0.08); // 8% Conveyance Allowance
-      const medical = Math.round(totalSalary * 0.06); // 6% Medical Allowance
-
-      // Calculate special allowance to ensure total equals original salary
-      const calculatedTotal = basicSalary + hra + conveyance + medical;
-      const special = totalSalary - calculatedTotal; // Remaining amount for Special Allowance
-
-      const lta = 0; // LTA removed as per new breakdown
-
-      const salaryComponents = [
-        ['Basic Salary', basicSalary, basicSalary * 12],
-        ['House Rent Allowance', hra, hra * 12],
-        ['Conveyance Allowance', Math.round(conveyance/12), conveyance],
-        ['Leave Travel Allowance', lta, lta * 12],
-        ['Medical Allowance', Math.round(medical/12), medical],
-        ['Special Allowance', special, special * 12],
-        ['Total CTC', offerLetter.salary || 30000, (offerLetter.salary || 30000) * 12]
-      ];
-
-      salaryComponents.forEach((component, index) => {
+      // Salary rows
+      salaryComponents.forEach((item, index) => {
+        const isTotal = item.component === 'Total CTC';
         const fillColor = index % 2 === 0 ? '#ffffff' : '#f0f4f8';
-        const isTotal = component[0] === 'Total CTC';
 
-        doc.rect(50, yPos, salaryColWidth, rowHeight).fill(fillColor).stroke('#e2e8f0');
-        doc.rect(50 + salaryColWidth, yPos, salaryColWidth, rowHeight).fill(fillColor).stroke('#e2e8f0');
-        doc.rect(50 + 2 * salaryColWidth, yPos, salaryColWidth, rowHeight).fill(fillColor).stroke('#e2e8f0');
+        doc.rect(50, yPos, salaryColWidth, salaryRowHeight).fill(fillColor).stroke('#e2e8f0');
+        doc.rect(50 + salaryColWidth, yPos, salaryColWidth, salaryRowHeight).fill(fillColor).stroke('#e2e8f0');
+        doc.rect(50 + 2 * salaryColWidth, yPos, salaryColWidth, salaryRowHeight).fill(fillColor).stroke('#e2e8f0');
 
         doc.fillColor(isTotal ? '#1e3a8a' : '#1e293b')
            .fontSize(9)
            .font(isTotal ? 'Helvetica-Bold' : 'Helvetica')
-           .text(component[0], 60, yPos + 5);
+           .text(item.component, 60, yPos + 5);
 
-        doc.text(formatNumber(component[1]), 60 + salaryColWidth, yPos + 5, { align: 'right', width: salaryColWidth - 20 });
-        doc.text(formatNumber(component[2]), 60 + 2 * salaryColWidth, yPos + 5, { align: 'right', width: salaryColWidth - 20 });
+        doc.fillColor(isTotal ? '#1e3a8a' : '#1e293b')
+           .text(formatCurrency(item.monthly), 60 + salaryColWidth, yPos + 5, { align: 'right', width: salaryColWidth - 20 });
 
-        yPos += rowHeight;
+        doc.fillColor(isTotal ? '#1e3a8a' : '#1e293b')
+           .text(formatCurrency(item.annual), 60 + 2 * salaryColWidth, yPos + 5, { align: 'right', width: salaryColWidth - 20 });
+
+        yPos += salaryRowHeight;
+      });
+
+      yPos += 30;
+
+      // ==================== PAGE 2: EMPLOYMENT TERMS & CONDITIONS ====================
+      doc.addPage();
+      
+      // Page header
+      doc.rect(0, 0, doc.page.width, 80).fill('#1e3a8a');
+      doc.fillColor('#ffffff')
+         .fontSize(16)
+         .font('Helvetica-Bold')
+         .text('EMPLOYMENT TERMS & CONDITIONS', 50, 30);
+
+      yPos = 100;
+
+      const termsAndConditions = [
+        {
+          title: '1. EMPLOYMENT RELATIONSHIP',
+          items: [
+            'This is a full-time employment offer with Fintradify Private Limited, subject to all terms and conditions outlined in this letter and company policies.',
+            `Your employment will commence on ${offerLetter.joiningDate ? new Date(offerLetter.joiningDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'the specified joining date'} and will continue until terminated as per company policy.`,
+            'You will be required to adhere to all company policies, rules, regulations, and code of conduct as may be amended from time to time.',
+            'Any changes to your compensation, benefits, job responsibilities, or terms of employment must be approved in writing by the management.'
+          ]
+        },
+        {
+          title: '2. PROBATION PERIOD',
+          items: [
+            `You will serve a probation period of ${offerLetter.probationPeriod || 6} months from your date of joining, during which your performance will be evaluated regularly.`,
+            'During probation, your performance, conduct, and adherence to company policies will be assessed through regular feedback sessions.',
+            'Successful completion of probation will lead to confirmation of your employment. Failure to meet performance standards may result in termination.',
+            "Either party may terminate the employment relationship during probation with 15 days' notice or salary in lieu thereof."
+          ]
+        },
+        {
+          title: '3. WORKING HOURS & LOCATION',
+          items: [
+            'Standard working hours are Monday to Friday, 9:00 AM to 6:00 PM, with a one-hour lunch break. Total working hours: 8 hours per day.',
+            `Your primary work location will be ${offerLetter.workLocation || 'Noida, Uttar Pradesh'}. However, you may be required to travel or work from other locations as per business requirements.`,
+            'Overtime work, if required, will be compensated as per applicable labor laws and company policy.'
+          ]
+        },
+        {
+          title: '4. CONFIDENTIALITY & NON-DISCLOSURE',
+          items: [
+            'You agree to maintain strict confidentiality of all company information, including but not limited to client data, business strategies, financial information, and proprietary processes.',
+            'This confidentiality obligation extends to all information accessed during employment and continues indefinitely even after termination of employment.',
+            'Any breach of confidentiality may result in immediate termination and legal action as appropriate.'
+          ]
+        }
+      ];
+
+      termsAndConditions.forEach(section => {
+        yPos = addNewPageIfNeeded(section.items.length * 60 + 30);
+        
+        doc.fillColor('#1e293b')
+           .fontSize(12)
+           .font('Helvetica-Bold')
+           .text(section.title, 50, yPos);
+
+        yPos += 20;
+
+        section.items.forEach((item, index) => {
+          yPos = addNewPageIfNeeded(20);
+          
+          doc.fillColor('#1e293b')
+             .fontSize(10)
+             .font('Helvetica')
+             .text('• ' + item, 70, yPos, {
+               width: doc.page.width - 120,
+               align: 'justify'
+             });
+          
+          yPos += 15;
+        });
+
+        yPos += 10;
+      });
+
+      // ==================== PAGE 3: BENEFITS & POLICIES ====================
+      doc.addPage();
+      
+      // Page header
+      doc.rect(0, 0, doc.page.width, 80).fill('#1e3a8a');
+      doc.fillColor('#ffffff')
+         .fontSize(16)
+         .font('Helvetica-Bold')
+         .text('BENEFITS & POLICIES', 50, 30);
+
+      yPos = 100;
+
+      const benefitsAndPolicies = [
+        {
+          title: 'LEAVE POLICY',
+          items: [
+            'Annual Leave: 12 days per year (1 day accrued per month), maximum carry forward of 6 days to next year.',
+            'Sick Leave: 6 days per year, supported by medical certificate for absences exceeding 2 consecutive days.',
+            'Maternity Leave: As per Maternity Benefit Act, 1961 - 26 weeks for normal delivery, 8 weeks for cesarean.',
+            "Paternity Leave: 15 days as per company policy, to be availed within 6 months of child's birth.",
+            'Marriage Leave: 7 days for self, 3 days for immediate family members (parents, siblings, children).',
+            'Bereavement Leave: 7 days for immediate family members (parents, spouse, children, siblings).'
+          ]
+        },
+        {
+          title: 'EMPLOYEE BENEFITS & PERKS',
+          items: [
+            'Health Insurance: Comprehensive medical coverage for you and your family with sum insured of ₹5,00,000.',
+            'Professional Development: Annual budget of ₹25,000 for training, certification, and skill development programs.',
+            'Flexible Work Arrangements: Option for work from home up to 2 days per week, subject to business requirements.',
+            'Performance Incentives: Quarterly bonuses based on individual and company performance metrics.',
+            'Learning & Development: Access to online learning platforms and internal knowledge sharing sessions.',
+            'Team Building Activities: Regular team outings, celebrations, and recreational activities.'
+          ]
+        },
+        {
+          title: 'CODE OF CONDUCT & DISCIPLINARY POLICY',
+          items: [
+            'Maintain professional conduct, respect colleagues, and adhere to workplace ethics at all times.',
+            'Any violation of company policies may result in disciplinary action, including verbal warning, written warning, suspension, or termination.',
+            'Serious misconduct including harassment, theft, fraud, or breach of confidentiality may result in immediate termination without notice.',
+            'The company reserves the right to amend policies and the code of conduct as necessary.'
+          ]
+        }
+      ];
+
+      benefitsAndPolicies.forEach(section => {
+        yPos = addNewPageIfNeeded(section.items.length * 60 + 30);
+        
+        doc.fillColor('#1e293b')
+           .fontSize(12)
+           .font('Helvetica-Bold')
+           .text(section.title, 50, yPos);
+
+        yPos += 20;
+
+        section.items.forEach(item => {
+          yPos = addNewPageIfNeeded(20);
+          
+          doc.fillColor('#1e293b')
+             .fontSize(10)
+             .font('Helvetica')
+             .text('• ' + item, 70, yPos, {
+               width: doc.page.width - 120,
+               align: 'justify'
+             });
+          
+          yPos += 15;
+        });
+
+        yPos += 10;
+      });
+
+      // ==================== PAGE 4: ACCEPTANCE & SIGNATURES ====================
+      doc.addPage();
+      
+      // Page header
+      doc.rect(0, 0, doc.page.width, 80).fill('#1e3a8a');
+      doc.fillColor('#ffffff')
+         .fontSize(16)
+         .font('Helvetica-Bold')
+         .text('ACCEPTANCE & AUTHORIZATION', 50, 30);
+
+      yPos = 100;
+
+      // Employee Acceptance Section
+      doc.fillColor('#1e293b')
+         .fontSize(12)
+         .font('Helvetica-Bold')
+         .text('EMPLOYEE ACCEPTANCE', 50, yPos);
+
+      yPos += 25;
+
+      const acceptanceText = [
+        `I, ${employee.name || '____________________'}, hereby accept the offer of employment with Fintradify Private Limited under the terms and conditions outlined in this offer letter.`,
+        'I have read, understood, and agree to abide by all company policies, rules, regulations, and the code of conduct as outlined in this document and as may be amended from time to time.',
+        'I confirm that all information provided by me during the recruitment process is true and accurate to the best of my knowledge.',
+        'I understand that this offer is contingent upon successful completion of background verification and submission of all required documents.'
+      ];
+
+      acceptanceText.forEach(paragraph => {
+        doc.fontSize(10.5)
+           .font('Helvetica')
+           .text(paragraph, 50, yPos, {
+             width: doc.page.width - 100,
+             align: 'justify'
+           });
+        yPos += 20;
       });
 
       yPos += 20;
 
-      // ==================== PAGE 2: EMPLOYMENT TERMS & CONDITIONS ====================
-      doc.addPage();
-
-      yPos = 50;
-
-      // Header for Page 2
-      doc.rect(0, 0, doc.page.width, 80)
-         .fill('#1e3a8a');
-
-      doc.fillColor('#ffffff')
-         .fontSize(16)
-         .font('Helvetica-Bold')
-         .text('EMPLOYMENT TERMS & CONDITIONS', doc.page.width / 2 - 120, 30);
-
-      yPos = 100;
-
-      doc.fillColor('#1e293b')
-         .fontSize(14)
-         .font('Helvetica-Bold')
-         .text('1. EMPLOYMENT RELATIONSHIP', 50, yPos);
-
-      yPos += 25;
-
-      doc.fontSize(10)
-         .font('Helvetica')
-         .text('• This is a full-time employment offer with Fintradify Private Limited, subject to all terms and conditions outlined in this letter and company policies.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Your employment will commence on ' + (offerLetter.joiningDate ? new Date(offerLetter.joiningDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' }) : 'the specified joining date') + ' and will continue until terminated as per company policy.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• You will be required to adhere to all company policies, rules, regulations, and code of conduct as may be amended from time to time.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Any changes to your compensation, benefits, job responsibilities, or terms of employment must be approved in writing by the management.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 25;
+      // Employee Signature Section
+      const signatureSectionHeight = 160;
+      yPos = addNewPageIfNeeded(signatureSectionHeight);
 
       doc.font('Helvetica-Bold')
-         .text('2. PROBATION PERIOD', 50, yPos);
-
-      yPos += 20;
-
-      doc.font('Helvetica')
-         .text(`• You will serve a probation period of ${offerLetter.probationPeriod || 6} months from your date of joining, during which your performance will be evaluated regularly.`, 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• During probation, your performance, conduct, and adherence to company policies will be assessed through regular feedback sessions.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Successful completion of probation will lead to confirmation of your employment. Failure to meet performance standards may result in termination.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Either party may terminate the employment relationship during probation with 15 days\' notice or salary in lieu thereof.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 25;
-
-      doc.font('Helvetica-Bold')
-         .text('3. WORKING HOURS & LOCATION', 50, yPos);
-
-      yPos += 20;
-
-      doc.font('Helvetica')
-         .text('• Standard working hours are Monday to Friday, 9:00 AM to 6:00 PM, with a one-hour lunch break. Total working hours: 8 hours per day.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text(`• Your primary work location will be ${offerLetter.workLocation || 'Noida, Uttar Pradesh'}. However, you may be required to travel or work from other locations as per business requirements.`, 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Overtime work, if required, will be compensated as per applicable labor laws and company policy.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 25;
-
-      doc.font('Helvetica-Bold')
-         .text('4. CONFIDENTIALITY & NON-DISCLOSURE', 50, yPos);
-
-      yPos += 20;
-
-      doc.font('Helvetica')
-         .text('• You agree to maintain strict confidentiality of all company information, including but not limited to client data, business strategies, financial information, and proprietary processes.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• This confidentiality obligation extends to all information accessed during employment and continues indefinitely even after termination of employment.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Any breach of confidentiality may result in immediate termination and legal action as appropriate.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 25;
-
-      doc.font('Helvetica-Bold')
-         .text('5. INTELLECTUAL PROPERTY RIGHTS', 50, yPos);
-
-      yPos += 20;
-
-      doc.font('Helvetica')
-         .text('• All work-related intellectual property, inventions, designs, software code, documentation, and creative works developed during employment belong exclusively to the company.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• You agree to execute any documents necessary to perfect the company\'s ownership of such intellectual property.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• This includes any work done using company resources, during work hours, or related to company projects.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 25;
-
-      // ==================== PAGE 3: BENEFITS, LEAVE POLICY & CODE OF CONDUCT ====================
-      doc.addPage();
-
-      yPos = 50;
-
-      // Header for Page 3
-      doc.rect(0, 0, doc.page.width, 80)
-         .fill('#1e3a8a');
-
-      doc.fillColor('#ffffff')
-         .fontSize(16)
-         .font('Helvetica-Bold')
-         .text('BENEFITS & POLICIES', doc.page.width / 2 - 80, 30);
-
-      yPos = 100;
-
-      doc.fillColor('#1e293b')
-         .fontSize(14)
-         .font('Helvetica-Bold')
-         .text('LEAVE POLICY', 50, yPos);
-
-      yPos += 25;
-
-      doc.fontSize(10)
-         .font('Helvetica')
-         .text('• Annual Leave: 12 days per year (1 day accrued per month), maximum carry forward of 6 days to next year.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Sick Leave: 6 days per year, supported by medical certificate for absences exceeding 2 consecutive days.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Maternity Leave: As per Maternity Benefit Act, 1961 - 26 weeks for normal delivery, 8 weeks for cesarean.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Paternity Leave: 15 days as per company policy, to be availed within 6 months of child\'s birth.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Marriage Leave: 7 days for self, 3 days for immediate family members (parents, siblings, children).', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Bereavement Leave: 7 days for immediate family members (parents, spouse, children, siblings).', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 25;
-
-      doc.font('Helvetica-Bold')
-         .text('EMPLOYEE BENEFITS & PERKS', 50, yPos);
-
-      yPos += 25;
-
-      doc.font('Helvetica')
-         .text('• Health Insurance: Comprehensive medical coverage for you and your family with sum insured of INR 5 lakhs.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Professional Development: Annual budget of INR 25,000 for training, certification, and skill development programs.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Flexible Work Arrangements: Option for work from home up to 2 days per week, subject to business requirements.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Performance Incentives: Quarterly bonuses based on individual and company performance metrics.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Learning & Development: Access to online learning platforms and internal knowledge sharing sessions.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Team Building Activities: Regular team outings, celebrations, and recreational activities.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 25;
-
-      doc.font('Helvetica-Bold')
-         .text('CODE OF CONDUCT & DISCIPLINARY POLICY', 50, yPos);
-
-      yPos += 25;
-
-      doc.font('Helvetica')
-         .text('• Maintain professional conduct, respect colleagues, and adhere to workplace ethics at all times.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Any violation of company policies may result in disciplinary action, including verbal warning, written warning, suspension, or termination.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• Serious misconduct including harassment, theft, fraud, or breach of confidentiality may result in immediate termination without notice.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 15;
-
-      doc.text('• The company reserves the right to amend policies and the code of conduct as necessary.', 70, yPos, { width: doc.page.width - 120 });
-
-      yPos += 25;
-
-      // ==================== PAGE 4: ACCEPTANCE & SIGNATURES ====================
-      doc.addPage();
-
-      yPos = 50;
-
-      // Header for Page 4
-      doc.rect(0, 0, doc.page.width, 80)
-         .fill('#1e3a8a');
-
-      doc.fillColor('#ffffff')
-         .fontSize(16)
-         .font('Helvetica-Bold')
-         .text('ACCEPTANCE & AUTHORIZATION', doc.page.width / 2 - 110, 30);
-
-      yPos = 100;
-
-      doc.fillColor('#1e293b')
-         .fontSize(14)
-         .font('Helvetica-Bold')
-         .text('EMPLOYEE ACCEPTANCE', 50, yPos);
-
-      yPos += 30;
-
-      doc.fontSize(11)
-         .font('Helvetica')
-         .text('I, ' + (employee.name || '____________________') + ', hereby accept the offer of employment with Fintradify Private Limited under the terms and conditions outlined in this offer letter.', 50, yPos, { width: doc.page.width - 100 });
-
-      yPos += 25;
-
-      doc.text('I have read, understood, and agree to abide by all company policies, rules, regulations, and the code of conduct as outlined in this document and as may be amended from time to time.', 50, yPos, { width: doc.page.width - 100 });
-
-      yPos += 25;
-
-      doc.text('I confirm that all information provided by me during the recruitment process is true and accurate to the best of my knowledge.', 50, yPos, { width: doc.page.width - 100 });
-
-      yPos += 25;
-
-      doc.text('I understand that this offer is contingent upon successful completion of background verification and submission of all required documents.', 50, yPos, { width: doc.page.width - 100 });
-
-      yPos += 35;
-
-      // Signature section
-      doc.font('Helvetica-Bold')
+         .fontSize(11)
          .text('Employee Signature:', 50, yPos);
 
-      yPos += 20;
-
       doc.font('Helvetica')
-         .text('_______________________________', 50, yPos);
+         .text('_______________________________', 50, yPos + 25);
 
-      yPos += 15;
-
-      doc.text('Date: ___________________________', 50, yPos);
-
-      yPos += 25;
+      doc.text('Date: ___________________________', 50, yPos + 45);
 
       doc.font('Helvetica-Bold')
-         .text('Employee Name (Print):', 50, yPos);
-
-      yPos += 20;
+         .text('Employee Name (Print):', 50, yPos + 70);
 
       doc.font('Helvetica')
-         .text('_______________________________', 50, yPos);
+         .text('_______________________________', 50, yPos + 95);
 
-      yPos += 40;
-
-      // Company authorization
+      // Company Authorization Section
       doc.font('Helvetica-Bold')
-         .text('COMPANY AUTHORIZATION', 50, yPos);
-
-      yPos += 30;
+         .text('COMPANY AUTHORIZATION', 50, yPos + 130);
 
       // HR Manager
       doc.font('Helvetica')
-         .text('HR Manager Signature:', 50, yPos);
+         .text('HR Manager Signature:', 50, yPos + 155);
 
-      yPos += 20;
+      doc.text('_______________________________', 50, yPos + 180);
 
-      doc.text('_______________________________', 50, yPos);
+      doc.text('Date: ___________________________', 50, yPos + 205);
 
-      yPos += 15;
-
-      doc.text('Date: ___________________________', 50, yPos);
-
-      yPos += 25;
-
-      // CEO
+      // CEO/Director
       doc.font('Helvetica-Bold')
-         .text('CEO/Director Signature:', 300, yPos - 45);
-
-      yPos += 20;
+         .text('CEO/Director Signature:', 300, yPos + 155);
 
       doc.font('Helvetica')
-         .text('_______________________________', 300, yPos - 25);
+         .text('_______________________________', 300, yPos + 180);
 
-      yPos += 15;
+      doc.text('Date: ___________________________', 300, yPos + 205);
 
-      doc.text('Date: ___________________________', 300, yPos - 25);
-
-      yPos += 40;
+      yPos += 230;
 
       // Footer
-      doc.fontSize(9)
-         .font('Helvetica')
-         .text('This offer letter is electronically generated and constitutes a valid legal document. Both parties should retain a copy for their records.', 50, yPos, { width: doc.page.width - 100, align: 'center' });
+      yPos = addNewPageIfNeeded(60);
+      
+      const footerText = [
+        'This offer letter is electronically generated and constitutes a valid legal document. Both parties should retain a copy for their records.',
+        'For any queries or clarifications, please contact: hr@fintradify.com | +91 78360 09907',
+        'This offer is valid for acceptance within 7 days from the date of this letter.'
+      ];
 
-      yPos += 15;
-
-      doc.text('For any queries or clarifications, please contact: hr@fintradify.com | +91 78360 09907', 50, yPos, { width: doc.page.width - 100, align: 'center' });
-
-      yPos += 15;
-
-      doc.text('This offer is valid for acceptance within 7 days from the date of this letter.', 50, yPos, { width: doc.page.width - 100, align: 'center' });
+      footerText.forEach((text, index) => {
+        doc.fontSize(9)
+           .font('Helvetica')
+           .text(text, 50, yPos + (index * 15), {
+             width: doc.page.width - 100,
+             align: 'center'
+           });
+      });
 
       doc.end();
 
@@ -1485,4 +1423,4 @@ const generateOfferLetterPDF = async (employee, offerLetter) => {
   });
 };
 
-module.exports = { generateSalarySlipPDF, generateRelievingLetterPDF, generateOfferLetterPDF };
+module.exports = { generateOfferLetterPDF };
