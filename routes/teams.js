@@ -6,7 +6,7 @@ const Task = require('../models/Task');
 const auth = require('../middleware/auth');
 
 router.get('/', auth, async (req, res) => {
-  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
+  // Allow both admin and employee roles
   try {
     // Get today's date range
     const todayStart = new Date();

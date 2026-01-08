@@ -221,4 +221,15 @@ router.post('/send-email', auth, async (req, res) => {
   }
 });
 
+// GET /relieving/my-letters - Get current user's relieving letters
+router.get('/my-letters', auth, async (req, res) => {
+  try {
+    const letters = await RelievingLetter.find({ employee: req.user.id });
+    res.json({ success: true, data: letters });
+  } catch (error) {
+    console.error('Fetch my relieving letters error:', error);
+    res.status(500).json({ success: false, message: 'Server error while fetching your relieving letters' });
+  }
+});
+
 module.exports = router;

@@ -210,4 +210,15 @@ router.put('/:id/status', auth, async (req, res) => {
   }
 });
 
+// GET /offer/my-offers - Get current user's offer letters
+router.get('/my-offers', auth, async (req, res) => {
+  try {
+    const letters = await OfferLetter.find({ employee: req.user.id });
+    res.json({ success: true, data: letters });
+  } catch (error) {
+    console.error('Fetch my offer letters error:', error);
+    res.status(500).json({ success: false, message: 'Server error while fetching your offer letters' });
+  }
+});
+
 module.exports = router;

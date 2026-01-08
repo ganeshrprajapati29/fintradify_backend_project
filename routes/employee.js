@@ -354,13 +354,16 @@ router.get('/profile', auth, async (req, res) => {
     const calculatedPaidLeave = Math.max(0, accruedPaidLeave - (employee.usedPaidLeaves || 0));
 
     res.json({
-      ...employee._doc,
-      salary: latestSalary ? latestSalary.amount : 'N/A',
-      employeeId: employee.employeeId, // Ensure employeeId is included
-      paidLeaveBalance: calculatedPaidLeave,
-      unpaidLeaveBalance: employee.unpaidLeaveBalance,
-      halfDayLeaveBalance: employee.halfDayLeaveBalance,
-      isEligibleForPaidLeaves: isEligible,
+      success: true,
+      data: {
+        ...employee._doc,
+        salary: latestSalary ? latestSalary.amount : 'N/A',
+        employeeId: employee.employeeId, // Ensure employeeId is included
+        paidLeaveBalance: calculatedPaidLeave,
+        unpaidLeaveBalance: employee.unpaidLeaveBalance,
+        halfDayLeaveBalance: employee.halfDayLeaveBalance,
+        isEligibleForPaidLeaves: isEligible,
+      }
     });
   } catch (err) {
     console.error('Fetch profile error:', err);
