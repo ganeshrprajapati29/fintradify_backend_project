@@ -1016,12 +1016,12 @@ const generateOfferLetterPDF = async (employee, offerLetter) => {
          .text('To,', 50, yPos);
 
       yPos += 15;
-      
+
       doc.font('Helvetica-Bold')
          .text(employee.name || 'Candidate Name', 50, yPos);
 
       yPos += 15;
-      
+
       if (employee.address) {
         const addressLines = employee.address.split(',');
         addressLines.forEach(line => {
@@ -1046,6 +1046,120 @@ const generateOfferLetterPDF = async (employee, offerLetter) => {
       }
 
       yPos += 20;
+
+      // ==================== EMPLOYEE DETAILS BOX ====================
+      // Add employee details box similar to salary slip
+      const detailsBoxHeight = 80;
+      doc.rect(50, yPos, doc.page.width - 100, detailsBoxHeight)
+         .fill('#f0f4f8')
+         .stroke('#cbd5e1');
+
+      doc.fillColor('#1e293b')
+         .fontSize(11)
+         .font('Helvetica-Bold')
+         .text('Employee Details', 60, yPos + 8);
+
+      // Define column positions for employee details
+      const col1X = 60;
+      const col2X = 200;
+      const col3X = 350;
+      const labelWidth = 60;
+      const valueWidth = 100;
+
+      // Row 1
+      const row1Y = yPos + 28;
+
+      // Column 1: Employee ID
+      doc.fillColor('#64748b')
+         .fontSize(9)
+         .font('Helvetica')
+         .text('Emp ID:', col1X, row1Y);
+
+      const empId = employee.employeeId || 'N/A';
+      doc.fillColor('#1e293b')
+         .font('Helvetica-Bold')
+         .fontSize(9)
+         .text(empId, col1X + labelWidth, row1Y);
+
+      // Column 2: Position
+      doc.fillColor('#64748b')
+         .fontSize(9)
+         .font('Helvetica')
+         .text('Position:', col2X, row1Y);
+
+      const position = employee.position || 'N/A';
+      doc.fillColor('#1e293b')
+         .font('Helvetica-Bold')
+         .fontSize(9)
+         .text(position, col2X + labelWidth, row1Y);
+
+      // Column 3: Department
+      doc.fillColor('#64748b')
+         .fontSize(9)
+         .font('Helvetica')
+         .text('Department:', col3X, row1Y);
+
+      const department = employee.department || 'N/A';
+      doc.fillColor('#1e293b')
+         .font('Helvetica-Bold')
+         .fontSize(9)
+         .text(department, col3X + labelWidth, row1Y);
+
+      // Row 2
+      const row2Y = row1Y + 14;
+
+      // Column 1: Email
+      doc.fillColor('#64748b')
+         .fontSize(9)
+         .font('Helvetica')
+         .text('Email:', col1X, row2Y);
+
+      const email = employee.email || 'N/A';
+      doc.fillColor('#1e293b')
+         .font('Helvetica-Bold')
+         .fontSize(9)
+         .text(email, col1X + labelWidth, row2Y, { width: valueWidth });
+
+      // Column 2: Phone
+      doc.fillColor('#64748b')
+         .fontSize(9)
+         .font('Helvetica')
+         .text('Phone:', col2X, row2Y);
+
+      const phone = employee.phone || 'N/A';
+      doc.fillColor('#1e293b')
+         .font('Helvetica-Bold')
+         .fontSize(9)
+         .text(phone, col2X + labelWidth, row2Y);
+
+      // Column 3: Joining Date
+      doc.fillColor('#64748b')
+         .fontSize(9)
+         .font('Helvetica')
+         .text('Joining Date:', col3X, row2Y);
+
+      const joiningDate = offerLetter.joiningDate ? formatIndianDate(offerLetter.joiningDate) : 'N/A';
+      doc.fillColor('#1e293b')
+         .font('Helvetica-Bold')
+         .fontSize(9)
+         .text(joiningDate, col3X + labelWidth, row2Y);
+
+      // Row 3 - Address
+      const row3Y = row2Y + 14;
+
+      // Full width for address
+      doc.fillColor('#64748b')
+         .fontSize(9)
+         .font('Helvetica')
+         .text('Address:', col1X, row3Y);
+
+      const address = employee.address || 'N/A';
+      doc.fillColor('#1e293b')
+         .font('Helvetica-Bold')
+         .fontSize(9)
+         .text(address, col1X + labelWidth, row3Y, { width: doc.page.width - 180 });
+
+      yPos += detailsBoxHeight + 20;
 
       // ==================== SUBJECT LINE ====================
       doc.fontSize(11)

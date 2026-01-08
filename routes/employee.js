@@ -75,7 +75,7 @@ router.get('/', auth, async (req, res) => {
 
 router.post('/', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
-  const { name, email, phone, position, department, bankAccount, bankName, salary, joiningDate } = req.body;
+  const { name, email, phone, address, position, department, bankAccount, bankName, salary, joiningDate } = req.body;
   try {
     let employee = await Employee.findOne({ email });
     if (employee) return res.status(400).json({ message: 'Employee already exists' });
@@ -89,6 +89,7 @@ router.post('/', auth, async (req, res) => {
       name,
       email,
       phone,
+      address,
       position,
       department,
       bankAccount,
@@ -196,7 +197,7 @@ router.post('/', auth, async (req, res) => {
 
 router.put('/:id', auth, async (req, res) => {
   if (req.user.role !== 'admin') return res.status(403).json({ message: 'Unauthorized' });
-  const { name, email, phone, position, department, bankAccount, bankName, password, salary, joiningDate, profilePhoto } = req.body;
+  const { name, email, phone, address, position, department, bankAccount, bankName, password, salary, joiningDate, profilePhoto } = req.body;
   try {
     const employee = await Employee.findById(req.params.id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
@@ -519,7 +520,7 @@ router.post('/:id/upload-photo', auth, upload.single('photo'), async (req, res) 
 
 router.put('/profile', auth, async (req, res) => {
   // Now proceed with profile update
-  const { name, email, phone, position, salary, profilePhoto } = req.body;
+  const { name, email, phone, address, position, salary, profilePhoto } = req.body;
   try {
     const employee = await Employee.findById(req.user.id);
     if (!employee) return res.status(404).json({ message: 'Employee not found' });
@@ -541,6 +542,7 @@ router.put('/profile', auth, async (req, res) => {
     if (name) employee.name = name;
     if (email) employee.email = email;
     if (phone) employee.phone = phone;
+    if (address) employee.address = address;
     if (position) employee.position = position;
     if (profilePhoto !== undefined) employee.profilePhoto = profilePhoto;
 
