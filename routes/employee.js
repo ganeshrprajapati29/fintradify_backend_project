@@ -205,6 +205,7 @@ router.put('/:id', auth, async (req, res) => {
     employee.name = name || employee.name;
     employee.email = email || employee.email;
     employee.phone = phone || employee.phone;
+    employee.address = address !== undefined ? address : employee.address;
     employee.position = position || employee.position;
     employee.department = department !== undefined ? department : employee.department;
     employee.bankAccount = bankAccount !== undefined ? bankAccount : employee.bankAccount;
