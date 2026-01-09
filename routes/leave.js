@@ -5,6 +5,7 @@ const Employee = require('../models/Employee');
 const Notification = require('../models/Notification');
 const auth = require('../middleware/auth');
 const { applyLeave, calculateLeaveBalances, getEmployeeLeaveData, getAllEmployeesLeaveData } = require('../services/leaveService');
+const { sendNotificationToMultiple } = require('../utils/firebaseService');
 
 router.post('/', auth, async (req, res) => {
   const { startDate, endDate, reason, type } = req.body;
@@ -20,14 +21,29 @@ router.post('/', auth, async (req, res) => {
     });
     await leave.save();
 
+    // Fetch employee details for dynamic message
+    const employee = await Employee.findById(req.user.id).select('name employeeId');
+
     // Create notification for admin
     const notification = new Notification({
       type: 'leave_request',
-      message: `New leave request from employee`,
+      message: `New leave request from ${employee.name} (${employee.employeeId})`,
       recipient: 'admin',
       relatedId: leave._id,
     });
     await notification.save();
+
+    // Send FCM notification to admin
+    const admins = await Employee.find({ role: 'admin' }).select('fcmToken');
+    const adminTokens = admins.map(admin => admin.fcmToken).filter(token => token);
+    if (adminTokens.length > 0) {
+      await sendNotificationToMultiple(
+        adminTokens,
+        'New Leave Request',
+        `${employee.name} (${employee.employeeId}) has submitted a leave request for approval.`,
+        { type: 'leave_request', leaveId: leave._id.toString() }
+      );
+    }
 
     res.json({ leave, deduction: result.deduction });
   } catch (err) {
@@ -76,6 +92,16 @@ router.put('/:id', auth, async (req, res) => {
       relatedId: leave._id,
     });
     await notification.save();
+
+    // Send FCM notification to employee
+    if (leave.employee.fcmToken) {
+      await sendNotificationToMultiple(
+        [leave.employee.fcmToken],
+        'Leave Request Update',
+        `Your leave request has been ${status}.`,
+        { type: 'leave_status', leaveId: leave._id.toString(), status }
+      );
+    }
 
     res.json(leave);
   } catch (err) {

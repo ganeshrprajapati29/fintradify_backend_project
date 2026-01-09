@@ -6,6 +6,7 @@ const Notification = require('../models/Notification');
 const Settings = require('../models/Settings');
 const Employee = require('../models/Employee');
 const auth = require('../middleware/auth');
+const { sendNotificationToMultiple } = require('../utils/firebaseService');
 
 const moment = require('moment-timezone');
 
@@ -85,14 +86,29 @@ router.post('/punch', auth, async (req, res) => {
       existingAttendance.locationAddress = address || existingAttendance.locationAddress || 'Unknown Location';
       await existingAttendance.save();
 
+      // Fetch employee details for dynamic message
+      const employee = await Employee.findById(req.user.id).select('name employeeId');
+
       // Create notification for admin
       const adminNotification = new Notification({
         type: 'attendance_pending',
-        message: `An employee has punched out. Please review and approve/reject.`,
+        message: `${employee.name} (${employee.employeeId}) has punched out. Please review and approve/reject.`,
         recipient: 'admin',
         relatedId: existingAttendance._id,
       });
       await adminNotification.save();
+
+      // Send FCM notification to admin
+      const admins = await Employee.find({ role: 'admin' }).select('fcmToken');
+      const adminTokens = admins.map(admin => admin.fcmToken).filter(token => token);
+      if (adminTokens.length > 0) {
+        await sendNotificationToMultiple(
+          adminTokens,
+          'Attendance Pending Approval',
+          `${employee.name} (${employee.employeeId}) has punched out and requires approval.`,
+          { type: 'attendance_pending', attendanceId: existingAttendance._id.toString() }
+        );
+      }
 
       return res.json({ message: 'Punch-out recorded and sent for approval', attendance: existingAttendance });
     }
@@ -576,6 +592,16 @@ router.put('/admin/approve/:id', auth, async (req, res) => {
     });
     await notification.save();
 
+    // Send FCM notification to employee
+    if (attendance.employee.fcmToken) {
+      await sendNotificationToMultiple(
+        [attendance.employee.fcmToken],
+        'Attendance Approved',
+        `Your attendance for ${new Date(attendance.date).toLocaleDateString('en-IN')} has been approved.`,
+        { type: 'attendance_approved', attendanceId: attendance._id.toString() }
+      );
+    }
+
     res.json({ message: 'Attendance approved', attendance });
   } catch (err) {
     console.error('Approve attendance error:', err);
@@ -605,6 +631,16 @@ router.put('/admin/reject/:id', auth, async (req, res) => {
       relatedId: attendance._id,
     });
     await notification.save();
+
+    // Send FCM notification to employee
+    if (attendance.employee.fcmToken) {
+      await sendNotificationToMultiple(
+        [attendance.employee.fcmToken],
+        'Attendance Rejected',
+        `Your attendance for ${new Date(attendance.date).toLocaleDateString('en-IN')} has been rejected.`,
+        { type: 'attendance_rejected', attendanceId: attendance._id.toString() }
+      );
+    }
 
     res.json({ message: 'Attendance rejected', attendance });
   } catch (err) {

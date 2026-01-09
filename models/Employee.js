@@ -27,6 +27,7 @@ const employeeSchema = new mongoose.Schema({
   halfDayLeaveBalance: { type: Number, default: 0 },
   usedPaidLeaves: { type: Number, default: 0 },
   lastLeaveAccrual: { type: Date, default: null },
+  fcmToken: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now },
 });
 

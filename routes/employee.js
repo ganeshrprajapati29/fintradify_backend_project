@@ -519,6 +519,22 @@ router.post('/:id/upload-photo', auth, upload.single('photo'), async (req, res) 
   }
 });
 
+router.put('/fcm-token', auth, async (req, res) => {
+  const { fcmToken } = req.body;
+  try {
+    const employee = await Employee.findById(req.user.id);
+    if (!employee) return res.status(404).json({ message: 'Employee not found' });
+
+    employee.fcmToken = fcmToken;
+    await employee.save();
+
+    res.json({ message: 'FCM token updated successfully' });
+  } catch (err) {
+    console.error('Update FCM token error:', err);
+    res.status(500).json({ message: 'Server error while updating FCM token' });
+  }
+});
+
 router.put('/profile', auth, async (req, res) => {
   // Now proceed with profile update
   const { name, email, phone, address, position, salary, profilePhoto } = req.body;
