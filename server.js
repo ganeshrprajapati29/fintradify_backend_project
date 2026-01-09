@@ -396,6 +396,165 @@ This is an automated reminder. Please do not reply to this message.
   }
 };
 
+// ===== LATE PUNCH-OUT NOTIFICATION FUNCTION =====
+const sendLatePunchOutNotifications = async () => {
+  try {
+    // Skip Sundays
+    const today = new Date();
+    if (today.getDay() === 0) { // 0 = Sunday
+      console.log('⏰ Skipping late punch-out notifications on Sunday.');
+      return;
+    }
+
+    console.log('🔍 Checking for late punch-outs after 6:15 PM...');
+
+    // Get today's date range
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    // Late punch-out threshold: 6:15 PM
+    const lateThreshold = new Date();
+    lateThreshold.setHours(18, 15, 0, 0);
+
+    // Find employees who punched out after 6:15 PM today
+    const latePunchOuts = await Attendance.find({
+      date: { $gte: todayStart, $lte: todayEnd },
+      punchOut: { $gte: lateThreshold },
+      status: { $in: ['pending', 'approved'] } // Only for punched out attendances
+    }).populate('employee', 'name email employeeId');
+
+    if (latePunchOuts.length === 0) {
+      console.log('✅ No late punch-outs found after 6:15 PM.');
+      return;
+    }
+
+    console.log(`📧 Sending late punch-out notifications to ${latePunchOuts.length} employees...`);
+
+    for (const attendance of latePunchOuts) {
+      const emp = attendance.employee;
+      if (!emp || !emp.email) continue;
+
+      const punchOutTime = new Date(attendance.punchOut).toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+
+      // Mark attendance as late punch-out
+      attendance.isLatePunchOut = true;
+      await attendance.save();
+
+      const subject = 'Late Punch-Out Notification - Fintradify HR';
+
+      const htmlMessage = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+</head>
+<body style="margin:0;padding:0;background-color:#f4f6f8;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:30px 0;">
+    <tr>
+      <td align="center">
+        <table width="650" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;">
+
+          <!-- Header -->
+          <tr>
+            <td style="background:#dc2626;color:#ffffff;padding:20px 30px;">
+              <h2 style="margin:0;font-weight:500;">Late Punch-Out Notification / देरी से पंच-आउट अधिसूचना</h2>
+            </td>
+          </tr>
+
+          <!-- Body -->
+          <tr>
+            <td style="padding:30px;color:#333333;font-size:15px;line-height:1.7;">
+              <p>Dear <strong>${emp.name}</strong>,</p>
+              <p>प्रिय <strong>${emp.name}</strong>,</p>
+
+              <p>
+                <strong>English:</strong> This is to inform you that your punch-out time today was recorded as <strong>${punchOutTime}</strong>,
+                which is after the standard office hours end time of 6:15 PM. Your attendance has been marked as late punch-out.
+              </p>
+
+              <p>
+                <strong>हिंदी:</strong> यह आपको सूचित करने के लिए है कि आज आपका पंच-आउट समय <strong>${punchOutTime}</strong> दर्ज किया गया है,
+                जो कार्यालय के मानक समाप्ति समय 6:15 PM के बाद है। आपकी उपस्थिति को देरी से पंच-आउट के रूप में चिह्नित किया गया है।
+              </p>
+
+              <p>
+                <strong>English:</strong> Please ensure timely punch-out in the future to maintain accurate working hours.
+              </p>
+
+              <p>
+                <strong>हिंदी:</strong> कृपया भविष्य में समय पर पंच-आउट सुनिश्चित करें ताकि सही कार्य समय दर्ज हो।
+              </p>
+
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="${process.env.FRONTEND_URL || 'https://crm.fintradify.com/'}" style="background-color: #1e3a8a; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; display: inline-block; box-shadow: 0 4px 8px rgba(30, 58, 138, 0.3);">Go to Dashboard / डैशबोर्ड पर जाएं</a>
+              </div>
+
+              <div style="border-top: 2px solid #dc2626; margin-top: 30px; padding-top: 20px;">
+                <p style="font-size: 16px; line-height: 1.6; margin-bottom: 5px;"><strong>Best Regards / शुभकामनाओं सहित,</strong></p>
+                <p style="font-size: 16px; line-height: 1.6; margin-bottom: 5px;">Fintradify HR Team</p>
+                <p style="font-size: 14px; color: #666; margin-bottom: 5px;">HR Department</p>
+                <p style="font-size: 14px; color: #666; margin-bottom: 0;">Email: hr@fintradify.com | Phone: +91 78360 09907</p>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="background:#f1f5f9;padding:15px 30px;text-align:center;font-size:12px;color:#64748b;">
+              This is an automated notification. Please do not reply to this message. / यह एक स्वचालित अधिसूचना है। कृपया इस संदेश का उत्तर न दें।
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+`;
+
+      const textMessage = `
+Dear ${emp.name},
+
+English:
+This is to inform you that your punch-out time today was recorded as ${punchOutTime},
+which is after the standard office hours end time of 6:15 PM. Your attendance has been marked as late punch-out.
+
+Please ensure timely punch-out in the future to maintain accurate working hours.
+
+हिंदी:
+यह आपको सूचित करने के लिए है कि आज आपका पंच-आउट समय ${punchOutTime} दर्ज किया गया है,
+जो कार्यालय के मानक समाप्ति समय 6:15 PM के बाद है। आपकी उपस्थिति को देरी से पंच-आउट के रूप में चिह्नित किया गया है।
+
+कृपया भविष्य में समय पर पंच-आउट सुनिश्चित करें ताकि सही कार्य समय दर्ज हो।
+
+Best Regards,
+Fintradify HR Team
+HR Department
+Email: hr@fintradify.com | Phone: +91 78360 09907
+
+This is an automated notification. Please do not reply to this message.
+`;
+
+      // Send bilingual email (English and Hindi)
+      await sendEmail(emp.email, subject, textMessage, [], htmlMessage);
+
+      console.log(`✅ Late punch-out notification sent to ${emp.name} (${emp.email})`);
+    }
+
+    console.log('✅ All late punch-out notifications sent successfully.');
+
+  } catch (error) {
+    console.error('❌ Error sending late punch-out notifications:', error);
+  }
+};
+
 // ===== SCHEDULE DAILY LATE PUNCH-IN NOTIFICATION AT 10:15 AM =====
 cron.schedule('15 10 * * 1-6', () => {
   console.log('⏰ Running scheduled late punch-in notification check...');
@@ -412,6 +571,14 @@ cron.schedule('15 18 * * 1-6', () => {
   timezone: 'Asia/Kolkata'
 });
 
+// ===== SCHEDULE DAILY LATE PUNCH-OUT NOTIFICATION AT 6:30 PM =====
+cron.schedule('30 18 * * 1-6', () => {
+  console.log('⏰ Running scheduled late punch-out notification check...');
+  sendLatePunchOutNotifications();
+}, {
+  timezone: 'Asia/Kolkata'
+});
+
 // ===== SERVER START =====
 const PORT = process.env.PORT || 5000;
 
@@ -419,4 +586,5 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log('⏰ Late punch-in notifications scheduled for 10:15 AM IST (Mon-Sat)');
   console.log('⏰ Punch out reminders scheduled for 6:15 PM IST (Mon-Sat)');
+  console.log('⏰ Late punch-out notifications scheduled for 6:30 PM IST (Mon-Sat)');
 });
