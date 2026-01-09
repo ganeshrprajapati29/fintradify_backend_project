@@ -545,6 +545,7 @@ router.put('/profile', auth, async (req, res) => {
     if (phone) employee.phone = phone;
     if (address) employee.address = address;
     if (position) employee.position = position;
+    if (department) employee.department = department;
     if (profilePhoto !== undefined) employee.profilePhoto = profilePhoto;
 
     await employee.save();
