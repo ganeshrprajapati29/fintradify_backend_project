@@ -41,6 +41,23 @@ if (!admin.apps.length) {
 const sendNotification = async (token, title, body, data = {}) => {
   if (!token) return;
 
+  // Mock mode - simulate successful notification sending
+  if (mockMode) {
+    console.log('📱 [MOCK] Successfully sent FCM notification to device');
+    console.log('📱 [MOCK] Title:', title);
+    console.log('📱 [MOCK] Body:', body);
+    console.log('📱 [MOCK] Token:', token);
+
+    // Simulate response structure
+    const mockResponse = {
+      messageId: `mock-message-id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      success: true
+    };
+
+    return mockResponse;
+  }
+
+  // Real Firebase mode
   const message = {
     token: token,
     notification: {
@@ -62,10 +79,10 @@ const sendNotification = async (token, title, body, data = {}) => {
 
   try {
     const response = await admin.messaging().send(message);
-    console.log('Successfully sent message:', response);
+    console.log('✅ Successfully sent FCM message:', response);
     return response;
   } catch (error) {
-    console.error('Error sending message:', error);
+    console.error('❌ Error sending FCM message:', error);
     return null;
   }
 };
@@ -85,6 +102,27 @@ const sendNotificationToMultiple = async (tokens, title, body, data = {}) => {
 
   if (!tokens || tokens.length === 0) return;
 
+  // Mock mode - simulate successful notification sending
+  if (mockMode) {
+    console.log('📱 [MOCK] Successfully sent FCM notification to', tokens.length, 'devices');
+    console.log('📱 [MOCK] Title:', title);
+    console.log('📱 [MOCK] Body:', body);
+    console.log('📱 [MOCK] Tokens:', tokens);
+
+    // Simulate response structure
+    const mockResponse = {
+      successCount: tokens.length,
+      failureCount: 0,
+      responses: tokens.map(token => ({
+        messageId: `mock-message-id-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        success: true
+      }))
+    };
+
+    return mockResponse;
+  }
+
+  // Real Firebase mode
   const message = {
     tokens: tokens,
     notification: {
@@ -106,10 +144,10 @@ const sendNotificationToMultiple = async (tokens, title, body, data = {}) => {
 
   try {
     const response = await admin.messaging().sendMulticast(message);
-    console.log('Successfully sent messages:', response);
+    console.log('✅ Successfully sent FCM messages:', response);
     return response;
   } catch (error) {
-    console.error('Error sending messages:', error);
+    console.error('❌ Error sending FCM messages:', error);
     return null;
   }
 };
