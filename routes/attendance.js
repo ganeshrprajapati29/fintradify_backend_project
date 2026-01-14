@@ -6,7 +6,7 @@ const Notification = require('../models/Notification');
 const Settings = require('../models/Settings');
 const Employee = require('../models/Employee');
 const auth = require('../middleware/auth');
-const { sendNotificationToMultiple } = require('../utils/firebaseService');
+const { sendNotificationToMultiple } = require('../utils/Service');
 
 const moment = require('moment-timezone');
 

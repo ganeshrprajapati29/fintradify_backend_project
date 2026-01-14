@@ -1491,4 +1491,4 @@ const generateOfferLetterPDF = async (employee, offerLetter) => {
   });
 };
 
-module.exports = { generateOfferLetterPDF };
+module.exports = { generateSalarySlipPDF, generateRelievingLetterPDF, generateOfferLetterPDF };
